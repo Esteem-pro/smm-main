@@ -131,12 +131,35 @@
     </style>
 </head>
 <body>
-  <!-- ОБЩАЯ НАВИГАЦИЯ СИСТЕМЫ -->
-<div style="background: #1e293b; padding: 12px 24px; display: flex; gap: 20px; align-items: center; z-index: 1000; position: relative;">
-    <div style="color: white; font-weight: 900; font-size: 16px; margin-right: 20px;">SMM ПОРТАЛ</div>
-    <a href="index.html" style="color: #e2e8f0; text-decoration: none; font-size: 14px; font-weight: 600; padding: 6px 12px; border-radius: 8px; transition: 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='transparent'">📅 Контент-план</a>
-    <a href="analytics.html" style="color: #e2e8f0; text-decoration: none; font-size: 14px; font-weight: 600; padding: 6px 12px; border-radius: 8px; transition: 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='transparent'">📊 Аналитика</a>
-</div>
+  <!-- ОБЩАЯ НАВИГАЦИЯ СИСТЕМЫ (SMM HUB) -->
+<nav class="sticky top-0 z-[1000] w-full bg-white/80 dark:bg-[#09090b]/80 backdrop-blur-xl border-b border-gray-200 dark:border-[#27272a] transition-colors duration-300">
+    <div class="max-w-[1800px] mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
+        
+        <!-- Логотип -->
+        <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-600 to-cyan-400 flex items-center justify-center text-white shadow-md shrink-0">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2-1-2 1M4 7l2-1M4 7l2 1M4 7v2.5M12 21l-2-1m2 1l2-1m-2 1v-2.5M6 18l-2-1v-2.5M18 18l2-1v-2.5"></path></svg>
+            </div>
+            <span class="font-extrabold text-lg text-gray-900 dark:text-white tracking-tight hidden sm:block">SMM Hub</span>
+        </div>
+
+        <!-- Переключатель (Pills) -->
+        <div class="flex items-center p-1 bg-gray-100/80 dark:bg-[#18181b]/80 rounded-[14px] border border-gray-200/50 dark:border-[#27272a]/50">
+            <!-- Активная вкладка -->
+            <a href="index.html" class="flex items-center gap-2 px-4 py-1.5 rounded-xl text-sm font-bold transition-all text-blue-600 dark:text-blue-400 bg-white dark:bg-[#27272a] shadow-sm cursor-default">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                Контент-план
+            </a>
+            <!-- Неактивная вкладка -->
+            <a href="analytics.html" class="flex items-center gap-2 px-4 py-1.5 rounded-xl text-sm font-bold transition-all text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white hover:bg-gray-200/50 dark:hover:bg-white/5">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+                Аналитика
+            </a>
+        </div>
+
+        <div class="w-10 sm:w-28 flex justify-end"></div>
+    </div>
+</nav>
     <div id="root"></div>
 
     <script type="text/babel">
