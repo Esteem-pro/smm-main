@@ -1,0 +1,1252 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
+    <title>SMM - Контент-план</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        'status-pub': '#10b981', 
+                        'status-proc': '#f59e0b', 
+                        'status-ready': '#3b82f6',
+                        'status-plan': '#a855f7',
+                        'graphite': '#111113',
+                        'carbon': '#18181b',
+                        'cell': '#222225'
+                    },
+                    borderRadius: {
+                        'bento': '24px'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        html, body { 
+            height: 100%; 
+            margin: 0; 
+            padding: 0; 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+        }
+        
+        body { background-color: #f9fafb !important; color: #111827; }
+        html.dark body { background-color: #09090b !important; color: #e4e4e7; }
+        
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 4px; }
+        html.dark ::-webkit-scrollbar-thumb { background: #3f3f46; }
+        
+        .bento-card { background-color: #ffffff; border: 1px solid #e5e7eb; border-radius: 20px; padding: 16px; transition: all 0.3s ease; }
+        html.dark .bento-card { background-color: #18181b; border-color: #27272a; }
+        @media (min-width: 640px) { .bento-card { padding: 24px; border-radius: 24px; } }
+        .bento-card:hover { border-color: #d1d5db; }
+        html.dark .bento-card:hover { border-color: #3f3f46; }
+        
+        .post-card { position: relative; font-size: 0.75rem; padding: 8px; border-radius: 10px; color: #1f2937; line-height: 1.2; transition: all 0.2s; z-index: 1; }
+        html.dark .post-card { color: #fff; }
+        .post-card-rubric { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 700; font-size: 10px; opacity: 0.9; line-height: 1.2; padding-right: 4px; pointer-events: none; }
+        
+        @media (hover: hover) {
+            .post-card:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(0,0,0,0.1); border-color: #d1d5db; z-index: 50; }
+            html.dark .post-card:hover { box-shadow: 0 6px 16px rgba(0,0,0,0.6); border-color: #555; }
+            .post-card:hover .post-card-rubric { white-space: normal; overflow: visible; display: block; word-break: break-word; }
+            .post-card:hover p.truncate { white-space: normal; overflow: visible; display: block; word-break: break-word; text-overflow: clip; }
+        }
+
+        .post-card.expanded { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(0,0,0,0.1); border-color: #d1d5db; z-index: 50; }
+        html.dark .post-card.expanded { box-shadow: 0 6px 16px rgba(0,0,0,0.6); border-color: #555; }
+        .post-card.expanded .post-card-rubric { white-space: normal; overflow: visible; display: block; word-break: break-word; }
+        .post-card.expanded p.truncate { white-space: normal; overflow: visible; display: block; word-break: break-word; text-overflow: clip; }
+
+        .bg-pub { background-color: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3); }
+        .bg-proc { background-color: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.3); }
+        .bg-ready { background-color: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.3); }
+        .bg-plan { background-color: rgba(168, 85, 247, 0.15); border: 1px solid rgba(168, 85, 247, 0.3); }
+        
+        .rubric-item { transition: all 0.2s ease; border: 1px solid transparent; }
+        .rubric-item:hover { background-color: #f3f4f6; border-color: #d1d5db; }
+        html.dark .rubric-item:hover { background-color: #27272a; border-color: #3f3f46; }
+        .rubric-item.active { background-color: #f3f4f6; border-color: #3b82f6; box-shadow: 0 0 0 1px #3b82f6; }
+        html.dark .rubric-item.active { background-color: #27272a; border-color: #3b82f6; box-shadow: 0 0 0 1px #3b82f6; }
+        
+        .dimmed { opacity: 0.3; filter: grayscale(80%); }
+
+        .db-table { width: 100%; border-collapse: separate; border-spacing: 0; text-align: left; }
+        .db-table th { background-color: #f9fafb; padding: 12px 16px; color: #4b5563; font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid #e5e7eb; border-top: 1px solid #e5e7eb; white-space: nowrap;}
+        html.dark .db-table th { background-color: #222225; border-color: #3f3f46; color: #86868b; }
+        .db-table th:first-child { border-left: 1px solid #e5e7eb; border-top-left-radius: 12px; border-bottom-left-radius: 12px;}
+        html.dark .db-table th:first-child { border-left: 1px solid #3f3f46; }
+        .db-table th:last-child { border-right: 1px solid #e5e7eb; border-top-right-radius: 12px; border-bottom-right-radius: 12px;}
+        html.dark .db-table th:last-child { border-right: 1px solid #3f3f46; }
+        .db-table td { padding: 12px 16px; border-bottom: 1px solid #e5e7eb; font-size: 13px; color: #1f2937; vertical-align: top; line-height: 1.4; transition: background-color 0.2s; }
+        html.dark .db-table td { border-bottom: 1px solid #27272a; color: #d4d4d8; }
+        
+        .row-active td { background-color: rgba(59, 130, 246, 0.05); }
+        .row-new td { background-color: transparent; }
+        .row-archived td { background-color: rgba(0, 0, 0, 0.02); opacity: 0.5; }
+        html.dark .row-archived td { background-color: rgba(255, 255, 255, 0.02); }
+        
+        .db-table tr:hover td { background-color: #f3f4f6 !important; opacity: 1 !important; }
+        html.dark .db-table tr:hover td { background-color: #2a2a2e !important; opacity: 1 !important; }
+        
+        .editable-cell { outline: none; border-radius: 4px; padding: 6px; min-width: 120px; max-width: 250px; transition: background-color 0.2s; word-wrap: break-word; overflow-wrap: break-word; word-break: break-word; white-space: pre-wrap; }
+        .editable-cell:focus { background-color: #f3f4f6; box-shadow: inset 0 0 0 1px #3b82f6; }
+        html.dark .editable-cell:focus { background-color: #27272a; box-shadow: inset 0 0 0 1px #3b82f6; }
+        .editable-cell:empty:before { content: "—"; color: #9ca3af; }
+        html.dark .editable-cell:empty:before { color: #52525b; }
+
+        .social-tab-container { position: relative; display: inline-flex; align-items: center; margin: 4px 6px 4px 0; user-select: none; -webkit-user-select: none; }
+        .social-tab-btn { padding: 6px 16px; border-radius: 12px; font-size: 14px; font-weight: 500; transition: all 0.2s; }
+        
+        .social-tab-del { position: absolute; top: -6px; right: -6px; background: #ef4444; color: white; border-radius: 50%; width: 16px; height: 16px; display: flex; align-items: center; justify-content: center; font-size: 10px; transition: all 0.2s; cursor: pointer; z-index: 10; box-shadow: 0 2px 4px rgba(0,0,0,0.2); opacity: 0; transform: scale(0.8); pointer-events: none; }
+        @media (hover: hover) {
+            .social-tab-container:hover .social-tab-del { opacity: 1; transform: scale(1); pointer-events: auto; }
+        }
+        .social-tab-del.show-del { opacity: 1; transform: scale(1); pointer-events: auto; }
+        .social-tab-del:hover { transform: scale(1.1); background: #dc2626; }
+        
+        .loader { border: 3px solid #e5e7eb; border-top: 3px solid #3b82f6; border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; }
+        html.dark .loader { border-color: #27272a; border-top-color: #3b82f6; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        input[type="date"] { position: relative; }
+        input[type="date"]::-webkit-date-and-time-value { text-align: left; margin: 0; }
+        input[type="date"]::-webkit-calendar-picker-indicator { position: absolute; top: 0; left: 0; right: 0; bottom: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+    </style>
+</head>
+<body>
+  <!-- ОБЩАЯ НАВИГАЦИЯ СИСТЕМЫ -->
+<div style="background: #1e293b; padding: 12px 24px; display: flex; gap: 20px; align-items: center; z-index: 1000; position: relative;">
+    <div style="color: white; font-weight: 900; font-size: 16px; margin-right: 20px;">SMM ПОРТАЛ</div>
+    <a href="index.html" style="color: #e2e8f0; text-decoration: none; font-size: 14px; font-weight: 600; padding: 6px 12px; border-radius: 8px; transition: 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='transparent'">📅 Контент-план</a>
+    <a href="analytics.html" style="color: #e2e8f0; text-decoration: none; font-size: 14px; font-weight: 600; padding: 6px 12px; border-radius: 8px; transition: 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='transparent'">📊 Аналитика</a>
+</div>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyDGPi5WmsDvBU0sq1y25YcYQI9aZb22MP8",
+            authDomain: "esteem---marketing---smm-plan.firebaseapp.com",
+            databaseURL: "https://esteem---marketing---smm-plan-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "esteem---marketing---smm-plan",
+            storageBucket: "esteem---marketing---smm-plan.firebasestorage.app",
+            messagingSenderId: "260291671274",
+            appId: "1:260291671274:web:274759aa78910bec401393"
+        };
+
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+        const auth = firebase.auth();
+        const db = firebase.database();
+
+        const rawRubricsBase = [
+            "Тренд", "Салон авто: До/после наших ковриков", "Запросы клиентов", "Товар недели", 
+            "Обучающий контент и советы", "Будни от лица Кая", "Обзор готовых изделий (на чистке)", 
+            "Полный процесс производства ASMR", "Залипитальные видео ASMR", 
+            "Сравнение нашей продукции с аналогами", "Подборки готовых решений и идей", 
+            "ОЧЕНЬ Интересные факты", "Сммщица на производстве", "Коврики в салоне автомобиля", 
+            "Аксессуары в реальной жизни", "Вирусный контент", "Новинки", 
+            "Виртуальная примерка автоковров в салон", "Без слов и объяснений", "Сериал", 
+            "Сторителлинг", "Обзор на популярные ролики", "Краштесты", "От эскиза до готового изделия", 
+            "Аксессуары с животными", "Ответы на вопросы (с мастером)", "Новости из автосферы", 
+            "Углубление в производство", "Полный путь заказа", "Рабочие будни", "Факапы", 
+            "Метод бисоциации/сравнение", "Часто задаваемые вопросы и ответы на них", "Эстетика деталей", 
+            "Отзывы клиентов", "Закулисье", "Поздравления с праздником", 
+            "Обучающий контент и советы с Сашей", "Новинки и новости из автосферы", 
+            "Интересные истории и факты", "Практика и эксплуатация", 
+            "Кейсы клиентов РФ+Европа+Дубай", "ТОП 10", "Образовательные"
+        ];
+
+        const App = () => {
+            const [user, setUser] = useState(null);
+            const [authLoading, setAuthLoading] = useState(true);
+            const [dataLoading, setDataLoading] = useState(true);
+            const [accessDenied, setAccessDenied] = useState(false);
+
+            const [isDark, setIsDark] = useState(() => {
+                const saved = localStorage.getItem('theme');
+                return saved !== 'light'; 
+            });
+
+            useEffect(() => {
+                if (isDark) {
+                    document.documentElement.classList.add('dark');
+                    localStorage.setItem('theme', 'dark');
+                } else {
+                    document.documentElement.classList.remove('dark');
+                    localStorage.setItem('theme', 'light');
+                }
+            }, [isDark]);
+
+            const [activeTab, setActiveTab] = useState('calendar'); 
+            
+            const minDate = new Date(2026, 7, 1);
+            const initialDate = new Date();
+            const [currentDate, setCurrentDate] = useState(initialDate < minDate ? minDate : new Date(initialDate.getFullYear(), initialDate.getMonth(), 1)); 
+            
+            const currentYear = currentDate.getFullYear();
+            const currentMonth = currentDate.getMonth();
+
+            const [socials, setSocials] = useState([]);
+            const [activeSocial, setActiveSocial] = useState(null);
+            const [isAddingSocial, setIsAddingSocial] = useState(false);
+            const [newSocialVal, setNewSocialVal] = useState('');
+            
+            const [rubricsBase, setRubricsBase] = useState([]);
+            const [activeRubricFilter, setActiveRubricFilter] = useState(null);
+            const [posts, setPosts] = useState([]);
+            const [monthlyRubrics, setMonthlyRubrics] = useState([]);
+
+            const [settings, setSettings] = useState({ requireReason: true, gracePeriodMinutes: 5 });
+
+            const [admins, setAdmins] = useState([]);
+            const [rescheduleLogs, setRescheduleLogs] = useState([]);
+            const [newAdminEmail, setNewAdminEmail] = useState('');
+            const [collapsedLogs, setCollapsedLogs] = useState({}); 
+            
+            const [reschedulePrompt, setReschedulePrompt] = useState({ isOpen: false, post: null, oldDateStr: '', newDateStr: '' });
+
+            const [postModal, setPostModal] = useState({ isOpen: false, post: null });
+            const [rubricModalOpen, setRubricModalOpen] = useState(false);
+            const [copyPlanModalOpen, setCopyPlanModalOpen] = useState(false);
+            const [editingPlanId, setEditingPlanId] = useState(null);
+            
+            const [dragOverDay, setDragOverDay] = useState(null);
+            const [expandedPostId, setExpandedPostId] = useState(null);
+            const [activeDeleteTabId, setActiveDeleteTabId] = useState(null);
+
+            const monthNames = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
+
+            const toArray = (obj) => Object.keys(obj || {}).map(key => ({ ...obj[key], id: key }));
+
+            useEffect(() => {
+                const unsubscribe = auth.onAuthStateChanged(u => {
+                    setUser(u);
+                    setAuthLoading(false);
+                });
+                return () => unsubscribe();
+            }, []);
+
+            useEffect(() => {
+                if (user) {
+                    setDataLoading(true);
+                    setAccessDenied(false);
+                    
+                    const workspaceRef = db.ref('shared_workspace');
+                    
+                    const handleData = snapshot => {
+                        const data = snapshot.val() || {};
+
+                        if (!data.rubricsBase && !data.socials) {
+                            const updates = {};
+                            rawRubricsBase.forEach((name) => {
+                                const key = db.ref().push().key;
+                                updates[`rubricsBase/${key}`] = { name: name, status: 'active', goal: "", audience: "", funnel: "", format: "", examples: "", freq: "", benefit: "", why: "" };
+                            });
+                            
+                            const socKey = db.ref().push().key;
+                            updates[`socials/${socKey}`] = { name: 'Instagram', year: 2026, month: 7 };
+                            updates[`settings`] = { requireReason: true, gracePeriodMinutes: 5 };
+                            
+                            workspaceRef.update(updates).catch(err => {
+                                if (err.code === 'PERMISSION_DENIED') setAccessDenied(true);
+                            });
+                            return; 
+                        }
+
+                        setSocials(toArray(data.socials));
+                        setRubricsBase(toArray(data.rubricsBase));
+                        setPosts(toArray(data.posts));
+                        setMonthlyRubrics(toArray(data.monthlyRubrics));
+                        setAdmins(toArray(data.admins));
+                        setRescheduleLogs(toArray(data.rescheduleLogs));
+                        
+                        const dbSettings = data.settings || {};
+                        setSettings({
+                            requireReason: dbSettings.requireReason !== undefined ? dbSettings.requireReason : true,
+                            gracePeriodMinutes: dbSettings.gracePeriodMinutes !== undefined ? Number(dbSettings.gracePeriodMinutes) : 5
+                        });
+                        
+                        setDataLoading(false);
+                    };
+
+                    const handleError = err => {
+                        if (err.code === 'PERMISSION_DENIED') {
+                            setAccessDenied(true);
+                            setDataLoading(false);
+                        } else {
+                            console.error(err);
+                        }
+                    };
+
+                    workspaceRef.on('value', handleData, handleError);
+                    return () => workspaceRef.off('value', handleData);
+                }
+            }, [user]);
+
+            useEffect(() => {
+                if (socials.length > 0 && !socials.some(s => s.name === activeSocial)) {
+                    setActiveSocial(socials[0].name);
+                }
+            }, [socials, activeSocial]);
+
+            const login = () => {
+                const provider = new firebase.auth.GoogleAuthProvider();
+                auth.signInWithPopup(provider).catch(err => alert(err.message));
+            };
+
+            const logout = () => auth.signOut();
+
+            const isAdmin = user && (admins.length === 0 || admins.some(a => a.email.toLowerCase() === user.email.toLowerCase()));
+
+            const handleAddAdmin = (e) => {
+                e.preventDefault();
+                if (newAdminEmail.trim()) {
+                    const key = db.ref().push().key;
+                    db.ref(`shared_workspace/admins/${key}`).set({ email: newAdminEmail.trim().toLowerCase() });
+                    setNewAdminEmail('');
+                }
+            };
+            
+            const handleRemoveAdmin = (id) => {
+                if(confirm('Удалить этого администратора?')) db.ref(`shared_workspace/admins/${id}`).remove();
+            };
+
+            const handleDeleteLog = (logId) => {
+                if(confirm('Удалить этот лог переноса?')) db.ref(`shared_workspace/rescheduleLogs/${logId}`).remove();
+            };
+
+            const handleSaveSocial = () => {
+                const trimmed = newSocialVal.trim();
+                if (trimmed && !socials.some(s => s.name === trimmed)) {
+                    const key = db.ref().push().key;
+                    db.ref(`shared_workspace/socials/${key}`).set({ 
+                        name: trimmed, year: currentYear, month: currentMonth 
+                    });
+                    setActiveSocial(trimmed);
+                }
+                setIsAddingSocial(false);
+                setNewSocialVal('');
+            };
+
+            const handleDeleteSocial = (id) => {
+                if(confirm('Точно удалить эту площадку?')) db.ref(`shared_workspace/socials/${id}`).remove();
+            };
+
+            const handleSavePost = (e) => {
+                e.preventDefault();
+                const formData = new FormData(e.target);
+                const dateVal = formData.get('date'); 
+                const [parsedYear, parsedMonth, parsedDay] = dateVal.split('-').map(Number);
+
+                const newPost = {
+                    id: postModal.post?.id || db.ref().push().key,
+                    day: parsedDay, month: parsedMonth - 1, year: parsedYear,
+                    rubric: formData.get('rubric'), status: formData.get('status'),
+                    desc: formData.get('desc'), social: activeSocial,
+                    updatedAt: Date.now()
+                };
+                
+                const isDateChanged = postModal.post?.id && (postModal.post.day !== parsedDay || postModal.post.month !== parsedMonth - 1 || postModal.post.year !== parsedYear);
+
+                if (isDateChanged) {
+                    const grace = Number(settings.gracePeriodMinutes);
+                    const timeSinceLastUpdate = postModal.post.updatedAt ? (Date.now() - postModal.post.updatedAt) / 60000 : Infinity;
+
+                    if (settings.requireReason && timeSinceLastUpdate >= grace) {
+                        const oldDateStr = `${postModal.post.day} ${monthNames[postModal.post.month]} ${postModal.post.year}`;
+                        const newDateStr = `${parsedDay} ${monthNames[parsedMonth - 1]} ${parsedYear}`;
+                        
+                        setReschedulePrompt({ isOpen: true, post: newPost, oldDateStr, newDateStr });
+                        setPostModal({ isOpen: false, post: null });
+                    } else {
+                        db.ref(`shared_workspace/posts/${newPost.id}`).set(newPost);
+                        setPostModal({ isOpen: false, post: null });
+                    }
+                } else {
+                    db.ref(`shared_workspace/posts/${newPost.id}`).set(newPost);
+                    setPostModal({ isOpen: false, post: null });
+                }
+            };
+
+            const handleConfirmReschedule = (e) => {
+                e.preventDefault();
+                const reason = new FormData(e.target).get('reason');
+                
+                db.ref(`shared_workspace/posts/${reschedulePrompt.post.id}`).set(reschedulePrompt.post);
+                
+                const logId = db.ref().push().key;
+                db.ref(`shared_workspace/rescheduleLogs/${logId}`).set({
+                    postId: reschedulePrompt.post.id,
+                    rubric: reschedulePrompt.post.rubric,
+                    desc: reschedulePrompt.post.desc,
+                    oldDate: reschedulePrompt.oldDateStr,
+                    newDate: reschedulePrompt.newDateStr,
+                    reason: reason,
+                    author: user.displayName || user.email,
+                    timestamp: Date.now()
+                });
+
+                setReschedulePrompt({ isOpen: false, post: null, oldDateStr: '', newDateStr: '' });
+            };
+
+            const handleDeletePost = () => {
+                if(postModal.post?.id && confirm('Точно удалить этот пост?')) {
+                    db.ref(`shared_workspace/posts/${postModal.post.id}`).remove();
+                    setPostModal({ isOpen: false, post: null });
+                }
+            };
+
+            const handleDragStart = (e, postId) => {
+                e.dataTransfer.setData('postId', postId);
+            };
+
+            const handleDragOver = (e) => {
+                e.preventDefault();
+            };
+
+            const handleDrop = (e, targetDay) => {
+                e.preventDefault();
+                setDragOverDay(null);
+                
+                const postId = e.dataTransfer.getData('postId');
+                if (postId) {
+                    const postToMove = posts.find(p => p.id === postId);
+                    if (postToMove && postToMove.day !== targetDay) {
+                        const grace = Number(settings.gracePeriodMinutes);
+                        const timeSinceLastUpdate = postToMove.updatedAt ? (Date.now() - postToMove.updatedAt) / 60000 : Infinity;
+                        const newPost = { ...postToMove, day: targetDay, month: currentMonth, year: currentYear, updatedAt: Date.now() };
+
+                        if (settings.requireReason && timeSinceLastUpdate >= grace) {
+                            const oldDateStr = `${postToMove.day} ${monthNames[postToMove.month]} ${postToMove.year}`;
+                            const newDateStr = `${targetDay} ${monthNames[currentMonth]} ${currentYear}`;
+                            
+                            setReschedulePrompt({ isOpen: true, post: newPost, oldDateStr, newDateStr });
+                        } else {
+                            db.ref(`shared_workspace/posts/${newPost.id}`).set(newPost);
+                        }
+                    }
+                }
+            };
+
+            const handleAddRubricToMonth = (e) => {
+                e.preventDefault();
+                const formData = new FormData(e.target);
+                const selectedName = formData.get('name');
+                if(!selectedName) return;
+                
+                const key = db.ref().push().key;
+                db.ref(`shared_workspace/monthlyRubrics/${key}`).set({ 
+                    name: selectedName, plan: parseInt(formData.get('plan')), 
+                    year: currentYear, month: currentMonth, social: activeSocial 
+                });
+                setRubricModalOpen(false);
+            };
+
+            const handleDeleteRubricFromMonth = (rubricId) => {
+                if(confirm('Убрать эту рубрику из плана на месяц?')) db.ref(`shared_workspace/monthlyRubrics/${rubricId}`).remove();
+            };
+
+            const createBaseRubric = () => {
+                const name = prompt("Введите название новой рубрики:");
+                if(name && name.trim()){ 
+                    const key = db.ref().push().key;
+                    db.ref(`shared_workspace/rubricsBase/${key}`).set({
+                        name: name.trim(), status: 'new', goal:'', audience:'', funnel:'', format:'', examples:'', freq:'', benefit:'', why:''
+                    }); 
+                }
+            };
+
+            const handleDeleteFromBase = (id) => {
+                if(confirm('Точно удалить рубрику из глобальной базы?')) db.ref(`shared_workspace/rubricsBase/${id}`).remove();
+            };
+
+            const updateRubricBaseField = (id, field, value) => {
+                db.ref(`shared_workspace/rubricsBase/${id}/${field}`).set(value);
+            };
+
+            const handleSavePlan = (id, newVal) => {
+                const parsed = parseInt(newVal);
+                if (!isNaN(parsed) && parsed > 0) {
+                    db.ref(`shared_workspace/monthlyRubrics/${id}/plan`).set(parsed);
+                }
+                setEditingPlanId(null);
+            };
+
+            const handleCopyPlan = (e) => {
+                e.preventDefault();
+                const formData = new FormData(e.target);
+                const targetSocial = formData.get('targetSocial');
+                if(!targetSocial) return;
+
+                const updates = {};
+                currentMonthRubrics.forEach(r => {
+                    const newId = db.ref().push().key;
+                    const {id, ...rest} = r;
+                    updates[`monthlyRubrics/${newId}`] = { ...rest, social: targetSocial };
+                });
+                currentMonthPosts.forEach(p => {
+                    const newId = db.ref().push().key;
+                    const {id, ...rest} = p;
+                    updates[`posts/${newId}`] = { ...rest, social: targetSocial };
+                });
+
+                db.ref('shared_workspace').update(updates);
+                setCopyPlanModalOpen(false);
+                setActiveSocial(targetSocial); 
+            };
+
+            const toggleLogSection = (rubric) => {
+                setCollapsedLogs(prev => ({...prev, [rubric]: !prev[rubric]}));
+            };
+
+            if (authLoading) return <div className="min-h-screen w-full flex items-center justify-center bg-gray-50 dark:bg-[#09090b]"><div className="loader"></div></div>;
+
+            if (!user) {
+                return (
+                    <div className="min-h-screen w-full flex items-center justify-center bg-gray-50 dark:bg-[#09090b] p-4 sm:p-6">
+                        <div className="bg-white dark:bg-carbon border border-gray-200 dark:border-[#27272a] rounded-bento p-8 sm:p-10 max-w-md w-full text-center shadow-2xl">
+                            <div className="w-16 h-16 bg-blue-100 dark:bg-blue-600/20 text-blue-600 dark:text-blue-500 flex items-center justify-center rounded-2xl mx-auto mb-6 text-3xl">
+                                <i className="fas fa-layer-group"></i>
+                            </div>
+                            <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">SMM - Контент-план</h1>
+                            <p className="text-gray-500 dark:text-gray-400 text-sm mb-8">Войдите, чтобы продолжить работу с контент-планом.</p>
+                            <button onClick={login} className="w-full bg-gray-100 dark:bg-[#222] text-gray-900 dark:text-white font-bold py-3 px-4 rounded-xl hover:bg-gray-200 dark:hover:bg-[#333] transition-colors flex items-center justify-center gap-3">
+                                <i className="fab fa-google text-red-500"></i> Войти через Google
+                            </button>
+                        </div>
+                    </div>
+                );
+            }
+
+            if (accessDenied) {
+                return (
+                    <div className="min-h-screen w-full flex items-center justify-center bg-gray-50 dark:bg-[#09090b] p-4 sm:p-6">
+                        <div className="bg-white dark:bg-carbon border border-red-200 dark:border-red-900/50 rounded-bento p-8 sm:p-10 max-w-md w-full text-center shadow-2xl">
+                            <div className="w-16 h-16 bg-red-100 dark:bg-red-600/20 text-red-600 dark:text-red-500 flex items-center justify-center rounded-2xl mx-auto mb-6 text-3xl">
+                                <i className="fas fa-lock"></i>
+                            </div>
+                            <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Нет доступа</h1>
+                            <p className="text-gray-500 dark:text-gray-400 text-sm mb-8">
+                                Аккаунт <b>{user.email}</b> не состоит в белом списке маркетинговой команды. Обратитесь к администратору.
+                            </p>
+                            <button onClick={logout} className="w-full bg-gray-100 dark:bg-[#222] text-gray-900 dark:text-white font-bold py-3 px-4 rounded-xl hover:bg-gray-200 dark:hover:bg-[#333] transition-colors">
+                                Выйти и сменить аккаунт
+                            </button>
+                        </div>
+                    </div>
+                );
+            }
+
+            if (dataLoading) return <div className="min-h-screen w-full flex flex-col items-center justify-center bg-gray-50 dark:bg-[#09090b] text-gray-500 dark:text-gray-400 gap-4"><div className="loader"></div>Подключение к рабочему пространству...</div>;
+
+            const isPrevMonthDisabled = currentYear === minDate.getFullYear() && currentMonth <= minDate.getMonth();
+
+            const prevMonth = () => { 
+                if (!isPrevMonthDisabled) {
+                    setCurrentDate(new Date(currentYear, currentMonth - 1, 1)); 
+                    setActiveRubricFilter(null); 
+                }
+            };
+            const nextMonth = () => { setCurrentDate(new Date(currentYear, currentMonth + 1, 1)); setActiveRubricFilter(null); };
+
+            const visibleSocials = socials.filter(s => currentYear > s.year || (currentYear === s.year && currentMonth >= s.month));
+            const currentMonthPosts = posts.filter(p => p.year === currentYear && p.month === currentMonth && p.social === activeSocial);
+            const currentMonthRubrics = monthlyRubrics.filter(r => r.year === currentYear && r.month === currentMonth && r.social === activeSocial);
+
+            const totalPosts = currentMonthPosts.length;
+            const planPosts = currentMonthPosts.filter(p => p.status === 'plan').length;
+            const procPosts = currentMonthPosts.filter(p => p.status === 'proc').length;
+            const readyPosts = currentMonthPosts.filter(p => p.status === 'ready').length;
+            const pubPosts = currentMonthPosts.filter(p => p.status === 'pub').length;
+
+            const rubricStats = currentMonthRubrics.map(r => {
+                const fact = currentMonthPosts.filter(p => p.rubric === r.name && p.status === 'pub').length;
+                return { ...r, fact };
+            });
+
+            const availableBaseRubrics = rubricsBase.filter(baseObj => !currentMonthRubrics.some(r => r.name === baseObj.name));
+            const statusOrder = { 'active': 1, 'new': 2, 'archived': 3 };
+            const sortedRubricsBase = [...rubricsBase].sort((a, b) => statusOrder[a.status] - statusOrder[b.status]);
+
+            const currentMonthLogs = rescheduleLogs.filter(log => {
+                const logDate = new Date(log.timestamp);
+                return logDate.getMonth() === currentMonth && logDate.getFullYear() === currentYear;
+            });
+
+            const groupedLogs = currentMonthLogs.reduce((acc, log) => {
+                if(!acc[log.rubric]) acc[log.rubric] = [];
+                acc[log.rubric].push(log);
+                return acc;
+            }, {});
+
+            const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+            let startDay = new Date(currentYear, currentMonth, 1).getDay();
+            startDay = startDay === 0 ? 6 : startDay - 1; 
+
+            const defaultYear = postModal.post?.year || currentYear;
+            const defaultMonth = postModal.post?.month !== undefined ? postModal.post.month : currentMonth;
+            const defaultDay = postModal.post?.day || 1;
+            const defaultDateStr = `${defaultYear}-${String(defaultMonth + 1).padStart(2, '0')}-${String(defaultDay).padStart(2, '0')}`;
+
+            const renderStatusIcon = (status) => {
+                if(status === 'plan') return <i className="fas fa-calendar-alt text-status-plan"></i>;
+                if(status === 'proc') return <i className="fas fa-video text-status-proc"></i>;
+                if(status === 'ready') return <i className="fas fa-clock text-status-ready"></i>;
+                if(status === 'pub') return <i className="fas fa-check-circle text-status-pub"></i>;
+            };
+
+            return (
+                <div className="min-h-screen w-full bg-gray-50 dark:bg-[#09090b] transition-colors duration-200" onClick={() => { setExpandedPostId(null); setActiveDeleteTabId(null); }}>
+                    <div className="p-3 sm:p-6 max-w-[1800px] mx-auto flex flex-col gap-4 sm:gap-6 relative">
+                        
+                        {/* HEADER */}
+                        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center bg-white dark:bg-carbon p-4 sm:px-6 sm:py-4 rounded-bento border border-gray-200 dark:border-[#27272a] gap-4 shadow-sm dark:shadow-none">
+                            <div className="flex flex-wrap items-center gap-4 w-full lg:w-auto">
+                                <div className="flex items-center justify-between w-full sm:w-auto">
+                                    <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                                        <i className="fas fa-layer-group text-blue-600"></i> Контент-центр
+                                    </h1>
+                                    <div className="flex sm:hidden items-center gap-3">
+                                        <button onClick={() => setIsDark(!isDark)} className="w-8 h-8 flex justify-center items-center rounded-lg text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                                            {isDark ? <i className="fas fa-sun"></i> : <i className="fas fa-moon"></i>}
+                                        </button>
+                                        <div className="flex items-center gap-2 bg-gray-100 dark:bg-[#222] pl-1.5 pr-3 py-1 rounded-full border border-gray-200 dark:border-gray-700 cursor-pointer" onClick={logout}>
+                                            <img src={user.photoURL} alt="Avatar" className="w-6 h-6 rounded-full" />
+                                            <i className="fas fa-sign-out-alt text-gray-500 text-xs"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div className="hidden sm:block h-6 w-px bg-gray-200 dark:bg-gray-700"></div>
+                                
+                                <div className="flex gap-2 w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0">
+                                    <button onClick={() => setActiveTab('calendar')} className={`flex-none whitespace-nowrap px-4 py-2.5 sm:py-2 rounded-xl text-sm font-bold transition-all border ${activeTab === 'calendar' ? 'bg-blue-600 text-white border-blue-600' : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white bg-gray-100 dark:bg-[#222] border-transparent dark:border-gray-800'}`}>
+                                        <i className="fas fa-calendar-alt mr-2"></i> Календарь
+                                    </button>
+                                    <button onClick={() => setActiveTab('rubrics')} className={`flex-none whitespace-nowrap px-4 py-2.5 sm:py-2 rounded-xl text-sm font-bold transition-all border ${activeTab === 'rubrics' ? 'bg-blue-600 text-white border-blue-600' : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white bg-gray-100 dark:bg-[#222] border-transparent dark:border-gray-800'}`}>
+                                        <i className="fas fa-database mr-2"></i> База
+                                    </button>
+                                    {isAdmin && (
+                                        <button onClick={() => setActiveTab('admin')} className={`flex-none whitespace-nowrap px-4 py-2.5 sm:py-2 rounded-xl text-sm font-bold transition-all border ${activeTab === 'admin' ? 'bg-purple-600 text-white border-purple-600' : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white bg-gray-100 dark:bg-[#222] border-transparent dark:border-gray-800'}`}>
+                                            <i className="fas fa-shield-alt mr-2"></i> Админка
+                                        </button>
+                                    )}
+                                </div>
+                                
+                                <div className="hidden lg:block h-6 w-px bg-gray-200 dark:bg-gray-700"></div>
+
+                                {activeTab === 'calendar' && (
+                                    <div className="flex gap-1 items-center overflow-x-auto max-w-full lg:max-w-[400px] py-1 px-1 w-full lg:w-auto">
+                                        {visibleSocials.map(s => (
+                                            <div 
+                                                key={s.id} 
+                                                className="social-tab-container"
+                                                onTouchStart={() => {
+                                                    window.longPressTimer = setTimeout(() => {
+                                                        setActiveDeleteTabId(s.id);
+                                                    }, 500); 
+                                                }}
+                                                onTouchEnd={() => clearTimeout(window.longPressTimer)}
+                                                onTouchMove={() => clearTimeout(window.longPressTimer)}
+                                                onContextMenu={(e) => {
+                                                    if ('ontouchstart' in window) e.preventDefault(); 
+                                                }}
+                                            >
+                                                <button onClick={(e) => { e.stopPropagation(); setActiveSocial(s.name); setActiveDeleteTabId(null); }} className={`social-tab-btn whitespace-nowrap ${activeSocial === s.name ? 'bg-blue-600 text-white' : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-[#222225]'}`}>
+                                                    {s.name}
+                                                </button>
+                                                <div onClick={(e) => { e.stopPropagation(); handleDeleteSocial(s.id); setActiveDeleteTabId(null); }} className={`social-tab-del ${activeDeleteTabId === s.id ? 'show-del' : ''}`} title="Удалить"><i className="fas fa-times"></i></div>
+                                            </div>
+                                        ))}
+                                        
+                                        {isAddingSocial ? (
+                                            <div className="flex items-center gap-1 bg-gray-100 dark:bg-[#222225] rounded-xl px-2 py-1 border border-gray-300 dark:border-gray-600 ml-1">
+                                                <input autoFocus value={newSocialVal} onChange={e=>setNewSocialVal(e.target.value)} onKeyDown={e => {if(e.key==='Enter') handleSaveSocial()}} className="bg-transparent text-sm text-gray-900 dark:text-white w-20 outline-none text-left" placeholder="Имя..." />
+                                                <button onClick={handleSaveSocial} className="text-green-500 px-1"><i className="fas fa-check"></i></button>
+                                                <button onClick={()=>setIsAddingSocial(false)} className="text-red-500 px-1"><i className="fas fa-times"></i></button>
+                                            </div>
+                                        ) : (
+                                            <button onClick={() => setIsAddingSocial(true)} className="px-3 py-1.5 rounded-xl text-sm font-medium text-gray-500 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-[#222225] border border-dashed border-gray-300 dark:border-gray-600 shrink-0 ml-1">
+                                                <i className="fas fa-plus"></i>
+                                            </button>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                            
+                            <div className="flex items-center gap-4 w-full lg:w-auto justify-between lg:justify-end">
+                                {(activeTab === 'calendar' || activeTab === 'admin') && (
+                                    <div className="flex items-center gap-3 bg-gray-100 dark:bg-[#222] rounded-xl p-1 border border-gray-200 dark:border-gray-700 w-full sm:w-auto justify-between">
+                                        <button onClick={prevMonth} disabled={isPrevMonthDisabled} className={`w-10 h-10 sm:w-8 sm:h-8 flex justify-center items-center rounded-lg transition-colors ${isPrevMonthDisabled ? 'text-gray-400 dark:text-gray-600 cursor-not-allowed opacity-50' : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-200 dark:hover:bg-gray-700'}`}><i className="fas fa-chevron-left text-sm"></i></button>
+                                        <span className="text-sm font-bold w-[120px] text-center text-gray-900 dark:text-white select-none">{monthNames[currentMonth]} {currentYear}</span>
+                                        <button onClick={nextMonth} className="w-10 h-10 sm:w-8 sm:h-8 flex justify-center items-center rounded-lg text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"><i className="fas fa-chevron-right text-sm"></i></button>
+                                    </div>
+                                )}
+                                
+                                <div className="hidden sm:flex items-center gap-3">
+                                    <button onClick={() => setIsDark(!isDark)} className="w-9 h-9 flex justify-center items-center rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors bg-gray-50 dark:bg-[#111] border border-gray-200 dark:border-gray-800">
+                                        {isDark ? <i className="fas fa-sun text-yellow-500"></i> : <i className="fas fa-moon text-blue-500"></i>}
+                                    </button>
+                                    
+                                    <div className="flex items-center gap-3 bg-gray-100 dark:bg-[#222] pl-2 pr-4 py-1.5 rounded-full border border-gray-200 dark:border-gray-700 group cursor-pointer shrink-0" onClick={logout} title="Выйти">
+                                        <img src={user.photoURL} alt="Avatar" className="w-7 h-7 rounded-full" />
+                                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300 group-hover:text-red-500 dark:group-hover:text-red-400 transition-colors">{user.displayName}</span>
+                                        <i className="fas fa-sign-out-alt text-gray-400 dark:text-gray-500 group-hover:text-red-500 dark:group-hover:text-red-400 transition-colors ml-1"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* ВКЛАДКА: КАЛЕНДАРЬ */}
+                        {activeTab === 'calendar' && (
+                            <div className="grid grid-cols-1 xl:grid-cols-12 gap-4 sm:gap-6 flex-grow">
+                                <div className="xl:col-span-8 flex flex-col gap-4 sm:gap-6">
+                                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
+                                        <div className="bento-card p-4 bg-gradient-to-br from-white to-gray-50 dark:from-carbon dark:to-[#111]">
+                                            <h3 className="text-[10px] text-gray-500 font-bold uppercase mb-2">Всего (Месяц)</h3>
+                                            <div className="text-2xl font-extrabold text-gray-900 dark:text-white">{totalPosts}</div>
+                                        </div>
+                                        <div className="bento-card p-4 border-t-2 border-t-status-plan">
+                                            <h3 className="text-[10px] text-gray-500 font-bold uppercase mb-2 flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-status-plan shrink-0"></div> Запланировано</h3>
+                                            <div className="text-2xl font-extrabold text-gray-900 dark:text-white">{planPosts}</div>
+                                        </div>
+                                        <div className="bento-card p-4 border-t-2 border-t-status-proc">
+                                            <h3 className="text-[10px] text-gray-500 font-bold uppercase mb-2 flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-status-proc shrink-0"></div> В производстве</h3>
+                                            <div className="text-2xl font-extrabold text-gray-900 dark:text-white">{procPosts}</div>
+                                        </div>
+                                        <div className="bento-card p-4 border-t-2 border-t-status-ready">
+                                            <h3 className="text-[10px] text-gray-500 font-bold uppercase mb-2 flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-status-ready shrink-0"></div> Ожидают</h3>
+                                            <div className="text-2xl font-extrabold text-gray-900 dark:text-white">{readyPosts}</div>
+                                        </div>
+                                        <div className="bento-card p-4 border-t-2 border-t-status-pub">
+                                            <h3 className="text-[10px] text-gray-500 font-bold uppercase mb-2 flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-status-pub shrink-0"></div> Опубликовано</h3>
+                                            <div className="text-2xl font-extrabold text-gray-900 dark:text-white">{pubPosts}</div>
+                                        </div>
+                                    </div>
+
+                                    <div className="bento-card flex-grow flex flex-col p-4 sm:p-6">
+                                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+                                            <h2 className="text-lg font-bold text-gray-900 dark:text-white flex flex-wrap items-center gap-2 sm:gap-3">
+                                                Сетка публикаций 
+                                                <span className="text-gray-500 text-sm font-normal shrink-0">({monthNames[currentMonth]})</span>
+                                                {activeRubricFilter && <span className="text-xs px-2 py-1 bg-blue-50 dark:bg-blue-600/20 text-blue-600 dark:text-blue-400 rounded-md border border-blue-200 dark:border-blue-500/30 flex items-center mt-2 sm:mt-0">Фильтр: {activeRubricFilter} <i className="fas fa-times cursor-pointer ml-1 hover:text-gray-900 dark:hover:text-white" onClick={()=>setActiveRubricFilter(null)}></i></span>}
+                                            </h2>
+                                            
+                                            <button onClick={() => setCopyPlanModalOpen(true)} className="w-full sm:w-auto px-4 py-2 sm:py-1.5 text-sm sm:text-xs bg-gray-100 dark:bg-[#222] border border-gray-200 dark:border-gray-700 rounded-lg text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
+                                                <i className="fas fa-copy mr-1"></i> Скопировать план
+                                            </button>
+                                        </div>
+                                        
+                                        <div className="overflow-x-auto pb-4">
+                                            <div className="bg-gray-50/80 dark:bg-transparent p-3 sm:p-5 rounded-[2rem] border border-gray-200 dark:border-transparent">
+                                                <div className="grid grid-cols-7 gap-2 sm:gap-3 min-w-[800px]">
+                                                    {['ПН', 'ВТ', 'СР', 'ЧТ', 'ПТ', 'СБ', 'ВС'].map(d => <div key={d} className="text-center font-bold text-xs text-gray-500 dark:text-gray-500 mb-1">{d}</div>)}
+                                                    
+                                                    {/* Пустые ячейки */}
+                                                    {[...Array(startDay)].map((_, i) => <div key={`pad-${i}`} className="rounded-xl sm:rounded-2xl min-h-[100px] sm:min-h-[120px] bg-gray-50 dark:bg-transparent border-2 border-dashed border-gray-300 dark:border-[#27272a]"></div>)}
+                                                    
+                                                    {/* Ячейки дней */}
+                                                    {[...Array(daysInMonth)].map((_, i) => {
+                                                        const day = i + 1;
+                                                        const dayPosts = currentMonthPosts.filter(p => p.day === day);
+                                                        return (
+                                                            <div 
+                                                                key={day} 
+                                                                onDragOver={handleDragOver}
+                                                                onDragEnter={() => setDragOverDay(day)}
+                                                                onDragLeave={() => setDragOverDay(null)}
+                                                                onDrop={(e) => handleDrop(e, day)}
+                                                                onClick={(e) => {
+                                                                    if (window.innerWidth <= 1024 && currentMonthRubrics.length > 0) {
+                                                                        setPostModal({ isOpen: true, post: { day, rubric: currentMonthRubrics[0]?.name, status: 'plan', desc: '' } });
+                                                                    }
+                                                                }}
+                                                                className={`rounded-xl sm:rounded-2xl min-h-[100px] sm:min-h-[120px] p-2 flex flex-col gap-1.5 relative border-2 transition-colors group shadow-sm dark:shadow-none ${dragOverDay === day ? 'bg-blue-50 dark:bg-[#2a2a2e] border-blue-500' : 'bg-white dark:bg-cell border-gray-300 dark:border-[#2a2a2e] md:hover:border-gray-400 md:dark:hover:border-gray-500'}`}
+                                                            >
+                                                                <span className="font-bold text-sm absolute top-2 right-2 text-gray-500 dark:text-gray-400 group-hover:text-gray-700 dark:group-hover:text-gray-300 transition-colors pointer-events-none">{day}</span>
+                                                                
+                                                                {currentMonthRubrics.length > 0 && (
+                                                                    <button onClick={(e) => { e.stopPropagation(); setPostModal({ isOpen: true, post: { day, rubric: currentMonthRubrics[0]?.name, status: 'plan', desc: '' } }); }} className="hidden md:block absolute top-2 left-2 text-gray-400 dark:text-gray-600 hover:text-gray-900 dark:hover:text-white opacity-0 group-hover:opacity-100 transition-opacity z-20">
+                                                                        <i className="fas fa-plus"></i>
+                                                                    </button>
+                                                                )}
+
+                                                                <div className="mt-6 flex flex-col gap-1.5 z-10">
+                                                                    {dayPosts.map(p => {
+                                                                        const isDimmed = activeRubricFilter && activeRubricFilter !== p.rubric;
+                                                                        const bgClass = p.status === 'pub' ? 'bg-pub' : p.status === 'proc' ? 'bg-proc' : p.status === 'ready' ? 'bg-ready' : 'bg-plan';
+                                                                        
+                                                                        return (
+                                                                            <div 
+                                                                                key={p.id} 
+                                                                                draggable={true}
+                                                                                onDragStart={(e) => handleDragStart(e, p.id)}
+                                                                                onClick={(e) => {
+                                                                                    e.stopPropagation();
+                                                                                    if (window.innerWidth <= 1024) {
+                                                                                        if (expandedPostId !== p.id) {
+                                                                                            setExpandedPostId(p.id);
+                                                                                        } else {
+                                                                                            setPostModal({ isOpen: true, post: p });
+                                                                                            setExpandedPostId(null);
+                                                                                        }
+                                                                                    } else {
+                                                                                        setPostModal({ isOpen: true, post: p });
+                                                                                        setExpandedPostId(null);
+                                                                                    }
+                                                                                }} 
+                                                                                className={`post-card ${bgClass} ${isDimmed ? 'dimmed' : ''} cursor-grab active:cursor-grabbing ${expandedPostId === p.id ? 'expanded' : ''}`}
+                                                                            >
+                                                                                <div className="flex justify-between items-start mb-0.5 pointer-events-none">
+                                                                                    <div className="post-card-rubric">{p.rubric}</div>
+                                                                                    <div className="scale-75 origin-top-right shrink-0">{renderStatusIcon(p.status)}</div>
+                                                                                </div>
+                                                                                <p className="opacity-80 truncate text-[11px] font-medium leading-tight pointer-events-none">{p.desc}</p>
+                                                                            </div>
+                                                                        )
+                                                                    })}
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="xl:col-span-4 bento-card flex flex-col bg-gray-50 dark:bg-[#111113] p-4 sm:p-6">
+                                    <div className="flex justify-between items-center mb-6">
+                                        <div>
+                                            <h2 className="text-lg font-bold text-gray-900 dark:text-white">План рубрик</h2>
+                                            <p className="text-xs text-gray-500">для {activeSocial}</p>
+                                        </div>
+                                        <button onClick={() => setRubricModalOpen(true)} className="text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white bg-white dark:bg-[#222] p-2 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-500 transition-colors shrink-0">
+                                            <i className="fas fa-plus"></i>
+                                        </button>
+                                    </div>
+
+                                    {currentMonthRubrics.length === 0 ? (
+                                        <div className="flex flex-col items-center justify-center flex-grow text-center text-gray-400 dark:text-gray-500 gap-3 py-10">
+                                            <i className="fas fa-list text-3xl opacity-30"></i>
+                                            <p className="text-sm">В этом месяце для площадки<br/><b>{activeSocial}</b> нет рубрик.</p>
+                                        </div>
+                                    ) : (
+                                        <div className="flex flex-col gap-3 overflow-y-auto pr-1" style={{maxHeight: 'calc(100vh - 220px)'}}>
+                                            {rubricStats.map(r => {
+                                                const percent = Math.min((r.fact / r.plan) * 100, 100);
+                                                const isComplete = r.fact >= r.plan;
+                                                const isActive = activeRubricFilter === r.name;
+                                                
+                                                return (
+                                                    <div key={r.id} onClick={(e) => { e.stopPropagation(); setActiveRubricFilter(isActive ? null : r.name); }} className={`rubric-item rounded-xl p-4 cursor-pointer bg-white dark:bg-carbon flex flex-col gap-3 border border-gray-200 dark:border-[#27272a] shadow-sm dark:shadow-none ${isActive ? 'active' : ''}`}>
+                                                        <div className="flex justify-between items-center gap-2">
+                                                            <span className="font-bold text-gray-900 dark:text-white text-sm break-words leading-tight flex-1">{r.name}</span>
+                                                            {editingPlanId === r.id ? (
+                                                                <div className="flex items-center gap-1 shrink-0" onClick={e => e.stopPropagation()}>
+                                                                    <span className="text-xs text-gray-500 dark:text-gray-400">{r.fact} / </span>
+                                                                    <input type="number" autoFocus min="1" className="w-10 bg-gray-100 dark:bg-[#222] text-gray-900 dark:text-white text-xs px-1 py-0.5 border border-blue-500 rounded outline-none" defaultValue={r.plan} onBlur={(e) => handleSavePlan(r.id, e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') handleSavePlan(r.id, e.target.value) }} />
+                                                                </div>
+                                                            ) : (
+                                                                <div onClick={(e) => { e.stopPropagation(); setEditingPlanId(r.id); }} className={`font-mono shrink-0 text-xs px-2 py-1 rounded-md border transition-colors ${isComplete ? 'bg-status-pub/10 text-status-pub border-status-pub/20' : 'bg-gray-50 dark:bg-[#18181b] text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800'}`}>
+                                                                    {r.fact} / {r.plan} <i className="fas fa-pencil-alt ml-1 opacity-40 text-[10px]"></i>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                        
+                                                        <div className="w-full bg-gray-100 dark:bg-[#09090b] rounded-full h-1.5 overflow-hidden mt-1">
+                                                            <div className={`h-full rounded-full transition-all duration-500 ${isComplete ? 'bg-status-pub' : 'bg-blue-500'}`} style={{width: `${percent}%`}}></div>
+                                                        </div>
+
+                                                        {isActive && (
+                                                            <div className="mt-2 pt-3 border-t border-gray-100 dark:border-gray-800 flex flex-col sm:flex-row justify-between sm:items-center gap-3 animation-fade-in" onClick={(e) => e.stopPropagation()}>
+                                                                <button onClick={() => handleDeleteRubricFromMonth(r.id)} className="text-xs text-red-500 hover:text-red-600 dark:hover:text-red-400 font-medium text-left sm:text-center">Убрать из плана</button>
+                                                                <button onClick={() => setPostModal({ isOpen: true, post: { day: 1, rubric: r.name, status: 'plan', desc: '' } })} className="px-3 py-2 sm:py-1.5 text-xs bg-blue-50 dark:bg-blue-600/20 hover:bg-blue-100 dark:hover:bg-blue-600/40 text-blue-600 dark:text-blue-400 rounded-lg border border-blue-200 dark:border-blue-500/30 transition-colors w-full sm:w-auto">
+                                                                    + Добавить пост
+                                                                </button>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                )
+                                            })}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* ВКЛАДКА: ГЛОБАЛЬНАЯ БАЗА */}
+                        {activeTab === 'rubrics' && (
+                            <div className="bento-card flex-grow flex flex-col overflow-hidden relative p-0">
+                                <div className="p-4 sm:p-6 pb-4 flex flex-col md:flex-row justify-between items-start md:items-end gap-4 border-b border-gray-200 dark:border-[#27272a]">
+                                    <div>
+                                        <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-1">Глобальная база рубрик</h2>
+                                        <p className="text-sm text-gray-500 dark:text-gray-400">Всего уникальных рубрик: {rubricsBase.length}</p>
+                                    </div>
+                                    <div className="flex flex-wrap gap-3 items-center text-xs w-full md:w-auto text-gray-600 dark:text-gray-300">
+                                        <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-sm bg-blue-100 dark:bg-blue-900/40 border border-blue-300 dark:border-blue-500/30"></div> Активные</div>
+                                        <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-sm bg-transparent border border-gray-300 dark:border-[#3f3f46]"></div> Новые</div>
+                                        <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-sm bg-gray-100 dark:bg-white/5 border border-transparent opacity-50"></div> В архиве</div>
+                                        
+                                        <button onClick={createBaseRubric} className="w-full sm:w-auto px-4 py-2 mt-2 sm:mt-0 sm:ml-4 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 dark:hover:bg-blue-500 transition-colors">
+                                            + Создать рубрику
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <div className="overflow-x-auto overflow-y-auto flex-grow p-4 sm:p-6 pt-4">
+                                    <table className="db-table min-w-[1000px]">
+                                        <thead>
+                                            <tr>
+                                                <th className="w-12 text-center">№</th>
+                                                <th className="min-w-[150px]">Название</th>
+                                                <th className="w-32">Статус</th>
+                                                <th>Цель рубрики</th>
+                                                <th>Целевая аудитория</th>
+                                                <th>Этап воронки</th>
+                                                <th>Формат</th>
+                                                <th>Примеры/механика</th>
+                                                <th>Частота</th>
+                                                <th>Польза</th>
+                                                <th>Почему сработает</th>
+                                                <th className="text-center w-12"><i className="fas fa-cog"></i></th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {sortedRubricsBase.map((r, index) => (
+                                                <tr key={r.id} className={`row-${r.status}`}>
+                                                    <td className="text-gray-400 dark:text-gray-500 font-mono text-xs text-center">{index + 1}</td>
+                                                    <td className="font-bold text-gray-900 dark:text-white"><div className="editable-cell" suppressContentEditableWarning={true} contentEditable="true" onBlur={e => updateRubricBaseField(r.id, 'name', e.target.innerText)}>{r.name}</div></td>
+                                                    <td>
+                                                        <select value={r.status} onChange={(e) => updateRubricBaseField(r.id, 'status', e.target.value)} className={`w-full h-8 bg-transparent text-xs outline-none cursor-pointer appearance-none ${r.status === 'active' ? 'text-blue-600 dark:text-blue-400' : r.status === 'archived' ? 'text-gray-400 dark:text-gray-500' : 'text-gray-700 dark:text-gray-300'}`}>
+                                                            <option value="active" className="bg-white dark:bg-[#222]">Активна ✔</option>
+                                                            <option value="new" className="bg-white dark:bg-[#222]">Новая</option>
+                                                            <option value="archived" className="bg-white dark:bg-[#222]">В архиве</option>
+                                                        </select>
+                                                    </td>
+                                                    <td><div className="editable-cell" suppressContentEditableWarning={true} contentEditable="true" onBlur={e => updateRubricBaseField(r.id, 'goal', e.target.innerText)}>{r.goal}</div></td>
+                                                    <td><div className="editable-cell" suppressContentEditableWarning={true} contentEditable="true" onBlur={e => updateRubricBaseField(r.id, 'audience', e.target.innerText)}>{r.audience}</div></td>
+                                                    <td><div className="editable-cell" suppressContentEditableWarning={true} contentEditable="true" onBlur={e => updateRubricBaseField(r.id, 'funnel', e.target.innerText)}>{r.funnel}</div></td>
+                                                    <td><div className="editable-cell" suppressContentEditableWarning={true} contentEditable="true" onBlur={e => updateRubricBaseField(r.id, 'format', e.target.innerText)}>{r.format}</div></td>
+                                                    <td><div className="editable-cell" suppressContentEditableWarning={true} contentEditable="true" onBlur={e => updateRubricBaseField(r.id, 'examples', e.target.innerText)}>{r.examples}</div></td>
+                                                    <td><div className="editable-cell" suppressContentEditableWarning={true} contentEditable="true" onBlur={e => updateRubricBaseField(r.id, 'freq', e.target.innerText)}>{r.freq}</div></td>
+                                                    <td><div className="editable-cell" suppressContentEditableWarning={true} contentEditable="true" onBlur={e => updateRubricBaseField(r.id, 'benefit', e.target.innerText)}>{r.benefit}</div></td>
+                                                    <td><div className="editable-cell" suppressContentEditableWarning={true} contentEditable="true" onBlur={e => updateRubricBaseField(r.id, 'why', e.target.innerText)}>{r.why}</div></td>
+                                                    <td className="text-center">
+                                                        <button onClick={() => handleDeleteFromBase(r.id)} className="text-gray-400 dark:text-gray-600 hover:text-red-500 transition-colors"><i className="fas fa-trash"></i></button>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* ВКЛАДКА: АДМИН-ПАНЕЛЬ */}
+                        {activeTab === 'admin' && isAdmin && (
+                            <div className="grid grid-cols-1 xl:grid-cols-12 gap-4 sm:gap-6 flex-grow">
+                                <div className="xl:col-span-4 flex flex-col gap-4 sm:gap-6">
+                                    <div className="bg-white dark:bg-carbon border border-gray-200 dark:border-[#27272a] rounded-bento p-5 sm:p-6 shadow-sm dark:shadow-none">
+                                        <h3 className="font-bold text-gray-900 dark:text-white mb-5 text-sm uppercase tracking-wider flex items-center gap-2"><i className="fas fa-sliders-h text-blue-500"></i> Настройки системы</h3>
+
+                                        <div className="flex items-center justify-between mb-5">
+                                            <div className="flex flex-col">
+                                                <label className="text-[14px] text-gray-800 dark:text-gray-200 font-medium">Причина переноса</label>
+                                                <span className="text-[11px] text-gray-500">Обязательное окно при смене даты</span>
+                                            </div>
+                                            <button
+                                                onClick={() => db.ref('shared_workspace/settings/requireReason').set(!settings.requireReason)}
+                                                className={`w-12 h-7 rounded-full relative transition-colors shrink-0 ${settings.requireReason ? 'bg-blue-600' : 'bg-gray-300 dark:bg-[#3f3f46]'}`}
+                                            >
+                                                <div className={`w-5 h-5 bg-white rounded-full absolute top-1 transition-transform ${settings.requireReason ? 'left-6' : 'left-1'}`}></div>
+                                            </button>
+                                        </div>
+
+                                        <div className="flex items-center justify-between transition-opacity" style={{ opacity: settings.requireReason ? 1 : 0.4, pointerEvents: settings.requireReason ? 'auto' : 'none' }}>
+                                            <div className="flex flex-col">
+                                                <label className="text-[14px] text-gray-800 dark:text-gray-200 font-medium">Окно без причины</label>
+                                                <span className="text-[11px] text-gray-500">В минутах (после сохранения)</span>
+                                            </div>
+                                            <input
+                                                type="number"
+                                                min="0"
+                                                value={settings.gracePeriodMinutes}
+                                                onChange={(e) => db.ref('shared_workspace/settings/gracePeriodMinutes').set(e.target.value === '' ? 0 : parseInt(e.target.value))}
+                                                className="w-16 bg-gray-50 dark:bg-[#222225] border border-gray-300 dark:border-[#3f3f46] rounded-xl px-2 py-1.5 text-gray-900 dark:text-white text-sm outline-none focus:border-blue-500 text-center shrink-0 font-mono"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="bg-gray-50 dark:bg-[#111113] border border-gray-200 dark:border-[#27272a] rounded-bento p-5 sm:p-6 flex-grow shadow-sm dark:shadow-none">
+                                        <h2 className="text-sm uppercase tracking-wider font-bold text-gray-900 dark:text-white flex items-center gap-2 mb-2">
+                                            <i className="fas fa-users-cog text-purple-500"></i> Доступ (Админы)
+                                        </h2>
+                                        <p className="text-[11px] text-gray-500 mb-5">Только админы могут видеть эту вкладку и управлять доступами.</p>
+                                        
+                                        <form onSubmit={handleAddAdmin} className="flex gap-2 mb-4">
+                                            <input type="email" required value={newAdminEmail} onChange={e=>setNewAdminEmail(e.target.value)} placeholder="email@gmail.com" className="flex-1 w-full bg-white dark:bg-[#222225] border border-gray-300 dark:border-[#3f3f46] rounded-xl px-4 py-2.5 text-gray-900 dark:text-white text-sm outline-none focus:border-purple-500" />
+                                            <button type="submit" className="px-5 bg-purple-600 hover:bg-purple-700 dark:hover:bg-purple-500 text-white rounded-xl text-sm font-bold transition-colors">+</button>
+                                        </form>
+                                        
+                                        <div className="flex flex-col gap-2 overflow-y-auto">
+                                            {admins.map(a => (
+                                                <div key={a.id} className="flex justify-between items-center bg-white dark:bg-carbon border border-gray-200 dark:border-[#27272a] rounded-xl p-3 shadow-sm dark:shadow-none">
+                                                    <span className="text-xs sm:text-sm text-gray-700 dark:text-gray-300 font-medium">{a.email}</span>
+                                                    <button onClick={() => handleRemoveAdmin(a.id)} className="text-red-500 hover:text-red-600 dark:hover:text-red-400 p-1"><i className="fas fa-trash text-sm"></i></button>
+                                                </div>
+                                            ))}
+                                            {admins.length === 0 && (
+                                                <div className="text-xs text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/20 p-3 rounded-xl border border-purple-200 dark:border-purple-500/30">Список пуст. Текущий пользователь назначен временным администратором. Добавьте свой email.</div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="xl:col-span-8 bento-card flex flex-col gap-6">
+                                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                                        <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                                            <i className="fas fa-history text-blue-500"></i> Переносы постов за {monthNames[currentMonth]}
+                                        </h2>
+                                        <span className="text-xs bg-gray-100 dark:bg-[#222225] border border-gray-200 dark:border-[#3f3f46] text-gray-600 dark:text-gray-300 px-3 py-1.5 rounded-lg font-mono">Всего: {currentMonthLogs.length}</span>
+                                    </div>
+
+                                    {Object.keys(groupedLogs).length === 0 ? (
+                                        <div className="flex flex-col items-center justify-center flex-grow text-gray-400 dark:text-gray-500 gap-3 py-10">
+                                            <i className="fas fa-calendar-check text-4xl opacity-20"></i>
+                                            <p className="text-sm">Переносов дат в этом месяце не было.</p>
+                                        </div>
+                                    ) : (
+                                        <div className="flex flex-col gap-4 overflow-y-auto">
+                                            {Object.entries(groupedLogs).map(([rubric, logs]) => {
+                                                const isCollapsed = collapsedLogs[rubric];
+                                                return (
+                                                    <div key={rubric} className="bg-gray-50 dark:bg-[#111113] border border-gray-200 dark:border-[#27272a] rounded-2xl overflow-hidden transition-all shadow-sm dark:shadow-none">
+                                                        <div 
+                                                            onClick={() => toggleLogSection(rubric)} 
+                                                            className="bg-gray-100 dark:bg-[#18181b] px-5 py-4 border-b border-gray-200 dark:border-[#27272a] flex justify-between items-center cursor-pointer hover:bg-gray-200 dark:hover:bg-[#222225] transition-colors select-none"
+                                                        >
+                                                            <div className="flex items-center gap-3">
+                                                                <i className={`fas fa-chevron-${isCollapsed ? 'right' : 'down'} text-gray-400 dark:text-gray-500 text-xs w-3 text-center`}></i>
+                                                                <h3 className="font-bold text-gray-900 dark:text-white text-sm">{rubric}</h3>
+                                                            </div>
+                                                            <span className="text-xs bg-gray-200 dark:bg-gray-800 text-gray-600 dark:text-gray-400 px-2 py-0.5 rounded-md">{logs.length} шт.</span>
+                                                        </div>
+                                                        
+                                                        {!isCollapsed && (
+                                                            <div className="p-0">
+                                                                {logs.sort((a,b) => b.timestamp - a.timestamp).map((log, idx) => (
+                                                                    <div key={log.timestamp + idx} className="p-4 sm:p-5 border-b border-gray-200 dark:border-[#27272a] last:border-0 flex flex-col gap-3 sm:gap-4 hover:bg-gray-100 dark:hover:bg-[#151518] transition-colors relative group">
+                                                                        <div className="flex flex-col md:flex-row justify-between md:items-center gap-2 pr-6">
+                                                                            <div className="font-medium text-[13px] sm:text-sm text-gray-800 dark:text-gray-200">
+                                                                                <i className="fas fa-file-alt text-gray-400 dark:text-gray-600 mr-2"></i>{log.desc || 'Без описания'}
+                                                                            </div>
+                                                                            <div className="flex items-center gap-2 text-xs font-mono">
+                                                                                <span className="text-gray-500 dark:text-gray-400 line-through decoration-red-500/50">{log.oldDate}</span>
+                                                                                <i className="fas fa-arrow-right text-gray-400 dark:text-gray-600"></i>
+                                                                                <span className="text-blue-600 dark:text-blue-400 font-bold">{log.newDate}</span>
+                                                                            </div>
+                                                                        </div>
+                                                                        <div className="bg-red-50 dark:bg-red-500/10 border border-red-100 dark:border-red-500/20 text-red-700 dark:text-red-200 text-[13px] sm:text-sm p-3 rounded-xl italic">
+                                                                            "{log.reason}"
+                                                                        </div>
+                                                                        <div className="text-[10px] text-gray-400 dark:text-gray-500 flex justify-end items-center gap-3 pr-2">
+                                                                            <span><i className="fas fa-user mr-1"></i>{log.author}</span>
+                                                                            <span><i className="fas fa-clock mr-1"></i>{new Date(log.timestamp).toLocaleString("ru-RU")}</span>
+                                                                        </div>
+                                                                        
+                                                                        <button 
+                                                                            onClick={(e) => { e.stopPropagation(); handleDeleteLog(log.id); }} 
+                                                                            className="absolute right-3 top-3 text-gray-400 dark:text-gray-600 hover:text-red-600 dark:hover:text-red-500 p-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all"
+                                                                            title="Удалить лог переноса"
+                                                                        >
+                                                                            <i className="fas fa-trash text-sm"></i>
+                                                                        </button>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+
+
+                        {/* МОДАЛЬНЫЕ ОКНА */}
+
+                        {reschedulePrompt.isOpen && (
+                            <div className="fixed inset-0 bg-black/50 dark:bg-black/80 backdrop-blur-sm dark:backdrop-blur-md flex items-center justify-center z-[60] p-4">
+                                <div className="bg-white dark:bg-[#18181b] border border-red-200 dark:border-red-500/30 rounded-3xl p-6 sm:p-8 w-full max-w-[500px] shadow-2xl relative" onClick={(e) => e.stopPropagation()}>
+                                    <div className="w-12 h-12 bg-red-100 dark:bg-red-500/20 text-red-600 dark:text-red-500 flex items-center justify-center rounded-2xl mb-4 text-xl border border-red-200 dark:border-red-500/30">
+                                        <i className="fas fa-exclamation-triangle"></i>
+                                    </div>
+                                    <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mb-2">Изменение даты публикации</h2>
+                                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Вы пытаетесь перенести пост <strong className="text-gray-900 dark:text-white">"{reschedulePrompt.post?.desc || 'Без названия'}"</strong>.</p>
+                                    
+                                    <div className="flex items-center justify-center gap-3 bg-gray-50 dark:bg-[#111113] p-4 rounded-xl border border-gray-200 dark:border-[#27272a] mb-6 font-mono text-sm">
+                                        <span className="text-gray-400 dark:text-gray-500 line-through">{reschedulePrompt.oldDateStr}</span>
+                                        <i className="fas fa-arrow-right text-gray-400 dark:text-gray-600"></i>
+                                        <span className="text-gray-900 dark:text-white font-bold">{reschedulePrompt.newDateStr}</span>
+                                    </div>
+
+                                    <form onSubmit={handleConfirmReschedule} className="flex flex-col gap-4">
+                                        <div>
+                                            <label className="text-sm font-bold text-red-600 dark:text-red-400 mb-2 block">Обязательно укажите причину переноса:</label>
+                                            <textarea name="reason" required placeholder="Например: Не успели смонтировать / Клиент попросил сдвинуть" rows="3" className="w-full bg-gray-50 dark:bg-[#222225] border border-gray-300 dark:border-[#3f3f46] rounded-xl p-4 text-gray-900 dark:text-white text-[15px] outline-none focus:border-red-500 transition-colors resize-none"></textarea>
+                                        </div>
+                                        
+                                        <div className="h-px w-full bg-gray-200 dark:bg-[#27272a] my-2"></div>
+                                        
+                                        <div className="flex justify-end gap-3">
+                                            <button type="button" onClick={() => setReschedulePrompt({ isOpen: false, post: null, oldDateStr:'', newDateStr:'' })} className="px-5 py-3 font-semibold text-[15px] bg-gray-100 dark:bg-[#222225] hover:bg-gray-200 dark:hover:bg-[#2a2a2e] text-gray-700 dark:text-gray-300 rounded-xl transition-colors">
+                                                Отменить перенос
+                                            </button>
+                                            <button type="submit" className="px-5 py-3 font-semibold text-[15px] bg-red-600 hover:bg-red-700 dark:hover:bg-red-500 text-white rounded-xl transition-colors">
+                                                Подтвердить перенос
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        )}
+                        
+                        {copyPlanModalOpen && (
+                            <div className="fixed inset-0 bg-black/50 dark:bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                                <div className="bg-white dark:bg-[#18181b] border border-gray-200 dark:border-[#27272a] rounded-3xl p-6 sm:p-8 w-full max-w-[500px] shadow-2xl relative" onClick={(e) => e.stopPropagation()}>
+                                    <button onClick={() => setCopyPlanModalOpen(false)} className="absolute top-5 right-5 text-gray-400 dark:text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors">
+                                        <i className="fas fa-times text-xl"></i>
+                                    </button>
+                                    <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mb-4 sm:mb-6">Скопировать план</h2>
+                                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">Текущая площадка: <strong className="text-gray-900 dark:text-white">{activeSocial}</strong> ({monthNames[currentMonth]})</p>
+                                    <form onSubmit={handleCopyPlan} className="flex flex-col gap-4">
+                                        <select name="targetSocial" required className="w-full h-[48px] bg-gray-50 dark:bg-[#222225] border border-gray-300 dark:border-[#3f3f46] rounded-[12px] px-4 text-gray-900 dark:text-white text-[15px] outline-none focus:border-blue-500 transition-colors appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2212%22%20height%3D%2212%22%20fill%3D%22%23a1a1aa%22%20viewBox%3D%220%200%2016%2016%22%3E%3Cpath%20d%3D%22M8%2011L3%206h10l-5%205z%22%2F%3E%3C%2Fsvg%3E')] bg-[position:right_16px_center] bg-no-repeat cursor-pointer text-left m-0 box-border">
+                                            <option value="">Выберите площадку...</option>
+                                            {visibleSocials.filter(s => s.name !== activeSocial).map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
+                                        </select>
+                                        
+                                        <div className="h-px w-full bg-gray-200 dark:bg-[#27272a] my-2"></div>
+                                        
+                                        <div className="flex justify-end gap-3">
+                                            <button type="button" onClick={() => setCopyPlanModalOpen(false)} className="px-5 py-3 font-semibold text-[15px] bg-gray-100 dark:bg-[#222225] hover:bg-gray-200 dark:hover:bg-[#2a2a2e] text-gray-700 dark:text-gray-300 rounded-xl transition-colors">
+                                                Отмена
+                                            </button>
+                                            <button type="submit" disabled={visibleSocials.length < 2} className="px-5 py-3 font-semibold text-[15px] bg-blue-600 dark:bg-[#2f6aef] hover:bg-blue-700 dark:hover:bg-blue-500 text-white rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                                                Скопировать
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        )}
+
+                        {postModal.isOpen && (
+                            <div className="fixed inset-0 bg-black/50 dark:bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                                <div className="bg-white dark:bg-[#18181b] border border-gray-200 dark:border-[#27272a] rounded-3xl p-6 sm:p-8 w-full max-w-[500px] shadow-2xl relative" onClick={(e) => e.stopPropagation()}>
+                                    <button onClick={() => setPostModal({ isOpen: false, post: null })} className="absolute top-5 right-5 text-gray-400 dark:text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors">
+                                        <i className="fas fa-times text-xl"></i>
+                                    </button>
+                                    <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mb-6">{postModal.post?.id ? 'Редактировать публикацию' : 'Создать публикацию'}</h2>
+                                    
+                                    <form onSubmit={handleSavePost} className="flex flex-col gap-4">
+                                        
+                                        <input name="desc" defaultValue={postModal.post?.desc} required placeholder="Тема / Описание" className="w-full h-[48px] bg-gray-50 dark:bg-[#222225] border border-gray-300 dark:border-[#3f3f46] rounded-[12px] px-4 text-gray-900 dark:text-white text-[15px] outline-none focus:border-blue-500 transition-colors appearance-none text-left m-0 box-border" />
+                                        
+                                        <input name="date" type="date" defaultValue={defaultDateStr} required style={{ colorScheme: isDark ? 'dark' : 'light' }} className="w-full h-[48px] flex items-center justify-start bg-gray-50 dark:bg-[#222225] border border-gray-300 dark:border-[#3f3f46] rounded-[12px] px-4 text-gray-900 dark:text-white text-[15px] outline-none focus:border-blue-500 transition-colors appearance-none text-left m-0 box-border" />
+                                        
+                                        <select name="status" defaultValue={postModal.post?.status || 'plan'} className="w-full h-[48px] bg-gray-50 dark:bg-[#222225] border border-gray-300 dark:border-[#3f3f46] rounded-[12px] px-4 text-gray-900 dark:text-white text-[15px] outline-none focus:border-blue-500 transition-colors appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2212%22%20height%3D%2212%22%20fill%3D%22%23a1a1aa%22%20viewBox%3D%220%200%2016%2016%22%3E%3Cpath%20d%3D%22M8%2011L3%206h10l-5%205z%22%2F%3E%3C%2Fsvg%3E')] bg-[position:right_16px_center] bg-no-repeat cursor-pointer text-left m-0 box-border">
+                                            <option value="plan">Запланировано</option>
+                                            <option value="proc">В производстве</option>
+                                            <option value="ready">Ожидает</option>
+                                            <option value="pub">Опубликовано</option>
+                                        </select>
+                                        
+                                        <select name="rubric" defaultValue={postModal.post?.rubric || currentMonthRubrics[0]?.name} required className="w-full h-[48px] bg-gray-50 dark:bg-[#222225] border border-gray-300 dark:border-[#3f3f46] rounded-[12px] px-4 text-gray-900 dark:text-white text-[15px] outline-none focus:border-blue-500 transition-colors appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2212%22%20height%3D%2212%22%20fill%3D%22%23a1a1aa%22%20viewBox%3D%220%200%2016%2016%22%3E%3Cpath%20d%3D%22M8%2011L3%206h10l-5%205z%22%2F%3E%3C%2Fsvg%3E')] bg-[position:right_16px_center] bg-no-repeat cursor-pointer text-left m-0 box-border">
+                                            {currentMonthRubrics.length === 0 && <option value="">Сначала добавьте рубрики в месяц</option>}
+                                            {currentMonthRubrics.map(r => <option key={r.id} value={r.name}>{r.name}</option>)}
+                                        </select>
+                                        
+                                        <div className="h-px w-full bg-gray-200 dark:bg-[#27272a] my-2"></div>
+
+                                        <div className="flex justify-between items-center">
+                                            {postModal.post?.id ? <button type="button" onClick={handleDeletePost} className="text-[15px] font-medium text-red-600 dark:text-red-500 hover:text-red-700 dark:hover:text-red-400">Удалить</button> : <div></div>}
+                                            <div className="flex gap-3">
+                                                <button type="button" onClick={() => setPostModal({isOpen: false, post: null})} className="px-5 py-3 font-semibold text-[15px] bg-gray-100 dark:bg-[#222225] hover:bg-gray-200 dark:hover:bg-[#2a2a2e] text-gray-700 dark:text-gray-300 rounded-xl transition-colors">
+                                                    Отмена
+                                                </button>
+                                                <button type="submit" disabled={currentMonthRubrics.length===0} className="px-5 py-3 font-semibold text-[15px] bg-blue-600 dark:bg-[#2f6aef] hover:bg-blue-700 dark:hover:bg-blue-500 text-white rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                                                    Сохранить
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        )}
+
+                        {rubricModalOpen && (
+                            <div className="fixed inset-0 bg-black/50 dark:bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                                <div className="bg-white dark:bg-[#18181b] border border-gray-200 dark:border-[#27272a] rounded-3xl p-6 sm:p-8 w-full max-w-[500px] shadow-2xl relative" onClick={(e) => e.stopPropagation()}>
+                                    <button onClick={() => setRubricModalOpen(false)} className="absolute top-5 right-5 text-gray-400 dark:text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors">
+                                        <i className="fas fa-times text-xl"></i>
+                                    </button>
+                                    
+                                    <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mb-6 pr-6">Добавить рубрику на {monthNames[currentMonth]}</h2>
+                                    
+                                    <form onSubmit={handleAddRubricToMonth} className="flex flex-col gap-4">
+                                        <div>
+                                            <select name="name" required className="w-full h-[48px] bg-gray-50 dark:bg-[#222225] border border-gray-300 dark:border-[#3f3f46] rounded-[12px] px-4 text-gray-900 dark:text-white text-[15px] appearance-none outline-none focus:border-blue-500 transition-colors bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2212%22%20height%3D%2212%22%20fill%3D%22%23a1a1aa%22%20viewBox%3D%220%200%2016%2016%22%3E%3Cpath%20d%3D%22M8%2011L3%206h10l-5%205z%22%2F%3E%3C%2Fsvg%3E')] bg-[position:right_16px_center] bg-no-repeat cursor-pointer text-left m-0 box-border">
+                                                {availableBaseRubrics.length === 0 ? <option value="">Все рубрики добавлены</option> : availableBaseRubrics.map(r => <option key={r.id} value={r.name}>{r.name}</option>)}
+                                            </select>
+                                            <p className="text-[13px] text-gray-500 mt-2 font-medium">Доступно: {availableBaseRubrics.length} уникальных рубрик</p>
+                                        </div>
+
+                                        <input name="plan" type="number" min="1" required defaultValue="4" placeholder="План постов на месяц (шт)" className="w-full h-[48px] bg-gray-50 dark:bg-[#222225] border border-gray-300 dark:border-[#3f3f46] rounded-[12px] px-4 text-gray-900 dark:text-white text-[15px] outline-none focus:border-blue-500 transition-colors text-left m-0 box-border" />
+
+                                        <div className="h-px w-full bg-gray-200 dark:bg-[#27272a] my-2"></div>
+
+                                        <div className="flex justify-end gap-3">
+                                            <button type="button" onClick={() => setRubricModalOpen(false)} className="px-5 py-3 font-semibold text-[15px] bg-gray-100 dark:bg-[#222225] hover:bg-gray-200 dark:hover:bg-[#2a2a2e] text-gray-700 dark:text-gray-300 rounded-xl transition-colors">
+                                                Отмена
+                                            </button>
+                                            <button type="submit" disabled={availableBaseRubrics.length === 0} className="px-5 py-3 font-semibold text-[15px] bg-blue-600 dark:bg-[#2f6aef] hover:bg-blue-700 dark:hover:bg-blue-500 text-white rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                                                Добавить в план
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App/>);
+    </script>
+</body>
+</html>
