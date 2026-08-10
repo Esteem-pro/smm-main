@@ -807,9 +807,10 @@
                                                                 <span className="font-bold text-sm absolute top-2 right-2 text-gray-500 dark:text-gray-400 group-hover:text-gray-700 dark:group-hover:text-gray-300 transition-colors pointer-events-none">{day}</span>
                                                                 
                                                                 {currentMonthRubrics.length > 0 && (
-    <button onClick={(e) => { e.stopPropagation(); setPostModal({ isOpen: true, post: { day, rubric: '', status: 'plan', desc: '' } }); }} className="...">
+    <button onClick={(e) => { e.stopPropagation(); setPostModal({ isOpen: true, post: { day, rubric: '', status: 'plan', desc: '' } }); }} className="hidden md:block absolute top-2 left-2 text-gray-400 dark:text-gray-600 hover:text-gray-900 dark:hover:text-white opacity-0 group-hover:opacity-100 transition-opacity z-20">
         <i className="fas fa-plus"></i>
     </button>
+)}
 
                                                                 <div className="mt-6 flex flex-col gap-1.5 z-10">
                                                                     {dayPosts.map(p => {
