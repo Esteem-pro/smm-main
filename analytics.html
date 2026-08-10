@@ -173,6 +173,23 @@
             border-radius: 999px;
             min-width: 2px;
         }
+/* Плавный переход для скрытия шапок */
+.transition-header {
+    transition: max-height 0.3s ease, padding 0.3s ease, opacity 0.25s ease, border-width 0.3s ease;
+    max-height: 200px; /* Запас по высоте, чтобы уместился контент шапки */
+    overflow: hidden;
+    opacity: 1;
+}
+
+/* Класс, который будет применять JavaScript при прокрутке вниз */
+.header-hidden {
+    max-height: 0 !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    opacity: 0 !important;
+    border-bottom-width: 0 !important;
+}
+        
     </style>
 </head>
 
@@ -1737,6 +1754,48 @@ const cName = channelFilter !== 'all' ? channelName(monthIndex, channelFilter).t
                 console.error(error);
             });
         });
+        // --- ЛОГИКА СКРЫТИЯ ШАПОК ПРИ СКРОЛЛЕ ---
+const mainNav = document.querySelector('nav');
+const subHeader = document.querySelector('header.glass-header');
+
+// Автоматически применяем базовый класс анимации к шапкам
+if (mainNav) mainNav.classList.add('transition-header');
+if (subHeader) subHeader.classList.add('transition-header');
+
+let lastScrollY = 0;
+
+function handleScroll(e) {
+    const currentScrollY = e.target.scrollTop;
+
+    // Защита от bounce-эффекта (резинового скролла) на iOS
+    if (currentScrollY <= 0) {
+        mainNav?.classList.remove('header-hidden');
+        subHeader?.classList.remove('header-hidden');
+        lastScrollY = currentScrollY;
+        return;
+    }
+
+    // Скрываем шапку, если скроллим вниз и прошли больше 60px
+    if (currentScrollY > lastScrollY && currentScrollY > 60) {
+        mainNav?.classList.add('header-hidden');
+        subHeader?.classList.add('header-hidden');
+    } 
+    // Возвращаем шапку при малейшем скролле вверх
+    else if (currentScrollY < lastScrollY) {
+        mainNav?.classList.remove('header-hidden');
+        subHeader?.classList.remove('header-hidden');
+    }
+
+    lastScrollY = currentScrollY;
+}
+
+// Привязываем слушатели к обеим вкладкам (текущий месяц и глобальная)
+const viewCurrent = document.getElementById('view-current');
+const viewGlobal = document.getElementById('view-global');
+
+if (viewCurrent) viewCurrent.addEventListener('scroll', handleScroll, { passive: true });
+if (viewGlobal) viewGlobal.addEventListener('scroll', handleScroll, { passive: true });
+// ----------------------------------------
     </script>
 </body>
 </html>
