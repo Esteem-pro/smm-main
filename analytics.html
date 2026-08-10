@@ -173,23 +173,30 @@
             border-radius: 999px;
             min-width: 2px;
         }
-/* Плавный переход для скрытия шапок */
+/* Плавный переход для скрытия элементов */
 .transition-header {
-    transition: max-height 0.3s ease, padding 0.3s ease, opacity 0.25s ease, border-width 0.3s ease;
-    max-height: 200px; /* Запас по высоте, чтобы уместился контент шапки */
+    transition: max-height 0.3s ease, padding 0.3s ease, opacity 0.25s ease, margin 0.3s ease, border-width 0.3s ease;
+    max-height: 200px; 
     overflow: hidden;
     opacity: 1;
 }
 
-/* Класс, который будет применять JavaScript при прокрутке вниз */
+/* Класс полного скрытия (для nav и блока с текстом) */
 .header-hidden {
     max-height: 0 !important;
     padding-top: 0 !important;
     padding-bottom: 0 !important;
+    margin: 0 !important;
     opacity: 0 !important;
     border-bottom-width: 0 !important;
 }
-        
+
+/* Компактный режим для самого контейнера header (чтобы убрать лишние отступы) */
+.header-compact {
+    padding-top: 0.75rem !important;
+    padding-bottom: 0.75rem !important;
+    gap: 0 !important;
+}  
     </style>
 </head>
 
@@ -1754,48 +1761,54 @@ const cName = channelFilter !== 'all' ? channelName(monthIndex, channelFilter).t
                 console.error(error);
             });
         });
-        // --- ЛОГИКА СКРЫТИЯ ШАПОК ПРИ СКРОЛЛЕ ---
+        // --- ЛОГИКА СКРЫТИЯ ШАПОК ПРИ СКРОЛЛЕ (ИСПРАВЛЕННАЯ) ---
 const mainNav = document.querySelector('nav');
 const subHeader = document.querySelector('header.glass-header');
+// Берем только первый div внутри хедера (там лежит заголовок и статусы)
+const subHeaderTitle = subHeader ? subHeader.querySelector('div:first-child') : null;
 
-// Автоматически применяем базовый класс анимации к шапкам
 if (mainNav) mainNav.classList.add('transition-header');
-if (subHeader) subHeader.classList.add('transition-header');
+if (subHeaderTitle) subHeaderTitle.classList.add('transition-header');
+// Добавляем плавность для изменения отступов самого контейнера
+if (subHeader) subHeader.style.transition = 'padding 0.3s ease, gap 0.3s ease';
 
 let lastScrollY = 0;
 
 function handleScroll(e) {
     const currentScrollY = e.target.scrollTop;
 
-    // Защита от bounce-эффекта (резинового скролла) на iOS
+    // Защита от bounce-эффекта на iOS (в самом верху страницы)
     if (currentScrollY <= 0) {
         mainNav?.classList.remove('header-hidden');
-        subHeader?.classList.remove('header-hidden');
+        subHeaderTitle?.classList.remove('header-hidden');
+        subHeader?.classList.remove('header-compact');
         lastScrollY = currentScrollY;
         return;
     }
 
-    // Скрываем шапку, если скроллим вниз и прошли больше 60px
+    // Скролл вниз (>60px): прячем навигацию и текстовый блок, сжимаем хедер
     if (currentScrollY > lastScrollY && currentScrollY > 60) {
         mainNav?.classList.add('header-hidden');
-        subHeader?.classList.add('header-hidden');
+        subHeaderTitle?.classList.add('header-hidden');
+        subHeader?.classList.add('header-compact');
     } 
-    // Возвращаем шапку при малейшем скролле вверх
+    // Скролл вверх: возвращаем всё обратно
     else if (currentScrollY < lastScrollY) {
         mainNav?.classList.remove('header-hidden');
-        subHeader?.classList.remove('header-hidden');
+        subHeaderTitle?.classList.remove('header-hidden');
+        subHeader?.classList.remove('header-compact');
     }
 
     lastScrollY = currentScrollY;
 }
 
-// Привязываем слушатели к обеим вкладкам (текущий месяц и глобальная)
+// Привязываем слушатели
 const viewCurrent = document.getElementById('view-current');
 const viewGlobal = document.getElementById('view-global');
 
 if (viewCurrent) viewCurrent.addEventListener('scroll', handleScroll, { passive: true });
 if (viewGlobal) viewGlobal.addEventListener('scroll', handleScroll, { passive: true });
-// ----------------------------------------
+// --------------------------------------------------------
     </script>
 </body>
 </html>
