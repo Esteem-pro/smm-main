@@ -173,35 +173,27 @@
             border-radius: 999px;
             min-width: 2px;
         }
-/* Плавный переход для скрытия элементов */
-.transition-header {
-    transition: max-height 0.3s ease, padding 0.3s ease, opacity 0.25s ease, margin 0.3s ease, border-width 0.3s ease;
-    max-height: 200px; 
-    overflow: hidden;
-    opacity: 1;
-}
 
-/* Класс полного скрытия (для nav и блока с текстом) */
-.header-hidden {
-    max-height: 0 !important;
-    padding-top: 0 !important;
-    padding-bottom: 0 !important;
-    margin: 0 !important;
-    opacity: 0 !important;
-    border-bottom-width: 0 !important;
-}
+        /* Анимация скрытия для второй шапки */
+        .transition-header {
+            transition: max-height 0.3s ease, padding 0.3s ease, opacity 0.2s ease, border-width 0.3s ease;
+            max-height: 150px; 
+            overflow: hidden;
+            opacity: 1;
+        }
 
-/* Компактный режим для самого контейнера header (чтобы убрать лишние отступы) */
-.header-compact {
-    padding-top: 0.75rem !important;
-    padding-bottom: 0.75rem !important;
-    gap: 0 !important;
-}  
+        .header-hidden {
+            max-height: 0 !important;
+            padding-top: 0 !important;
+            padding-bottom: 0 !important;
+            border-bottom-width: 0 !important;
+            opacity: 0 !important;
+        }
     </style>
 </head>
 
 <body class="antialiased">
-<!-- ОБЩАЯ НАВИГАЦИЯ СИСТЕМЫ (SMM HUB) -->
+<!-- ОБЩАЯ НАВИГАЦИЯ СИСТЕМЫ (SMM HUB) - ЭТА ПАНЕЛЬ ТЕПЕРЬ НЕ ПРЯЧЕТСЯ -->
 <nav class="sticky top-0 z-[1000] w-full bg-white/80 dark:bg-[#09090b]/80 backdrop-blur-xl border-b border-gray-200 dark:border-[#27272a] transition-colors duration-300">
     <div class="max-w-[1800px] mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
         
@@ -228,6 +220,7 @@
         <div class="w-10 sm:w-28 flex justify-end"></div>
     </div>
 </nav>
+
     <div id="auth-screen" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
         <div class="bg-white p-8 rounded-[2rem] shadow-2xl max-w-sm w-full relative overflow-hidden">
             <div class="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-blue-500 to-cyan-400"></div>
@@ -242,7 +235,8 @@
 
     <div id="dashboard-screen" class="hidden h-full flex flex-col w-full">
 
-        <header class="glass-header sticky top-0 z-40 px-6 py-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <!-- ВТОРАЯ ШАПКА - ОНА БУДЕТ ПРЯТАТЬСЯ -->
+        <header class="glass-header sticky top-0 z-40 px-6 py-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 transition-header" id="dynamic-header">
             <div>
                 <h1 class="text-2xl font-extrabold tracking-tight text-slate-900">
                     SMM Аналитика: <span id="current-month-label" class="text-blue-600">...</span>
@@ -1761,54 +1755,48 @@ const cName = channelFilter !== 'all' ? channelName(monthIndex, channelFilter).t
                 console.error(error);
             });
         });
-        // --- ЛОГИКА СКРЫТИЯ ШАПОК ПРИ СКРОЛЛЕ (ИСПРАВЛЕННАЯ) ---
-const mainNav = document.querySelector('nav');
-const subHeader = document.querySelector('header.glass-header');
-// Берем только первый div внутри хедера (там лежит заголовок и статусы)
-const subHeaderTitle = subHeader ? subHeader.querySelector('div:first-child') : null;
 
-if (mainNav) mainNav.classList.add('transition-header');
-if (subHeaderTitle) subHeaderTitle.classList.add('transition-header');
-// Добавляем плавность для изменения отступов самого контейнера
-if (subHeader) subHeader.style.transition = 'padding 0.3s ease, gap 0.3s ease';
+        // --- ИСПРАВЛЕННАЯ ЛОГИКА СКРЫТИЯ ТОЛЬКО ВТОРОЙ ШАПКИ ---
+        const subHeader = document.getElementById('dynamic-header');
+        let lastScrollY = 0;
 
-let lastScrollY = 0;
+        function handleScroll(e) {
+            const target = e.target;
+            const currentScrollY = target.scrollTop;
+            const maxScroll = target.scrollHeight - target.clientHeight;
 
-function handleScroll(e) {
-    const currentScrollY = e.target.scrollTop;
+            // Защита от прыжков в самом верху (iOS bounce-эффект)
+            if (currentScrollY <= 0) {
+                subHeader?.classList.remove('header-hidden');
+                lastScrollY = currentScrollY;
+                return;
+            }
 
-    // Защита от bounce-эффекта на iOS (в самом верху страницы)
-    if (currentScrollY <= 0) {
-        mainNav?.classList.remove('header-hidden');
-        subHeaderTitle?.classList.remove('header-hidden');
-        subHeader?.classList.remove('header-compact');
-        lastScrollY = currentScrollY;
-        return;
-    }
+            // Защита от прыжков в самом низу экрана! 
+            // Не даем скрипту реагировать, когда мы докрутили до дна
+            if (currentScrollY >= maxScroll - 10) {
+                lastScrollY = currentScrollY;
+                return;
+            }
 
-    // Скролл вниз (>60px): прячем навигацию и текстовый блок, сжимаем хедер
-    if (currentScrollY > lastScrollY && currentScrollY > 60) {
-        mainNav?.classList.add('header-hidden');
-        subHeaderTitle?.classList.add('header-hidden');
-        subHeader?.classList.add('header-compact');
-    } 
-    // Скролл вверх: возвращаем всё обратно
-    else if (currentScrollY < lastScrollY) {
-        mainNav?.classList.remove('header-hidden');
-        subHeaderTitle?.classList.remove('header-hidden');
-        subHeader?.classList.remove('header-compact');
-    }
+            // Скрываем шапку при скролле вниз (> 60px)
+            if (currentScrollY > lastScrollY && currentScrollY > 60) {
+                subHeader?.classList.add('header-hidden');
+            } 
+            // Возвращаем при скролле вверх (небольшой порог в 5px от случайных дерганий)
+            else if (currentScrollY < lastScrollY - 5) {
+                subHeader?.classList.remove('header-hidden');
+            }
 
-    lastScrollY = currentScrollY;
-}
+            lastScrollY = currentScrollY;
+        }
 
-// Привязываем слушатели
-const viewCurrent = document.getElementById('view-current');
-const viewGlobal = document.getElementById('view-global');
+        const viewCurrent = document.getElementById('view-current');
+        const viewGlobal = document.getElementById('view-global');
 
-if (viewCurrent) viewCurrent.addEventListener('scroll', handleScroll, { passive: true });
-if (viewGlobal) viewGlobal.addEventListener('scroll', handleScroll, { passive: true });
-// --------------------------------------------------------
+        if (viewCurrent) viewCurrent.addEventListener('scroll', handleScroll, { passive: true });
+        if (viewGlobal) viewGlobal.addEventListener('scroll', handleScroll, { passive: true });
+        // --------------------------------------------------------
     </script>
 </body>
 </html>
