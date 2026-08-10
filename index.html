@@ -677,7 +677,7 @@
                                 <div className="hidden lg:block h-6 w-px bg-gray-200 dark:bg-gray-700"></div>
 
                                 {activeTab === 'calendar' && (
-                                    <div className="flex gap-1 items-center overflow-x-auto max-w-full lg:max-w-[400px] py-1 px-1 w-full lg:w-auto">
+                                    <div className="flex gap-1.5 items-center overflow-x-auto max-w-full lg:max-w-none flex-1 py-1 px-1 w-full lg:w-auto">
                                         {visibleSocials.map(s => (
                                             <div 
                                                 key={s.id} 
@@ -715,7 +715,7 @@
                                 )}
                             </div>
                             
-                            <div className="flex items-center gap-4 w-full lg:w-auto justify-between lg:justify-end">
+                            <div className="flex items-center gap-6 w-full lg:w-auto justify-between lg:justify-end">
                                 {(activeTab === 'calendar' || activeTab === 'admin') && (
                                     <div className="flex items-center gap-3 bg-gray-100 dark:bg-[#222] rounded-xl p-1 border border-gray-200 dark:border-gray-700 w-full sm:w-auto justify-between">
                                         <button onClick={prevMonth} disabled={isPrevMonthDisabled} className={`w-10 h-10 sm:w-8 sm:h-8 flex justify-center items-center rounded-lg transition-colors ${isPrevMonthDisabled ? 'text-gray-400 dark:text-gray-600 cursor-not-allowed opacity-50' : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-200 dark:hover:bg-gray-700'}`}><i className="fas fa-chevron-left text-sm"></i></button>
@@ -724,18 +724,18 @@
                                     </div>
                                 )}
                                 
-                                <div className="hidden sm:flex items-center gap-3">
-                                    <button onClick={() => setIsDark(!isDark)} className="w-9 h-9 flex justify-center items-center rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors bg-gray-50 dark:bg-[#111] border border-gray-200 dark:border-gray-800">
-                                        {isDark ? <i className="fas fa-sun text-yellow-500"></i> : <i className="fas fa-moon text-blue-500"></i>}
-                                    </button>
-                                    
-                                    <div className="flex items-center gap-3 bg-gray-100 dark:bg-[#222] pl-2 pr-4 py-1.5 rounded-full border border-gray-200 dark:border-gray-700 group cursor-pointer shrink-0" onClick={logout} title="Выйти">
-                                        <img src={user.photoURL} alt="Avatar" className="w-7 h-7 rounded-full" />
-                                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300 group-hover:text-red-500 dark:group-hover:text-red-400 transition-colors">{user.displayName}</span>
-                                        <i className="fas fa-sign-out-alt text-gray-400 dark:text-gray-500 group-hover:text-red-500 dark:group-hover:text-red-400 transition-colors ml-1"></i>
-                                    </div>
-                                </div>
-                            </div>
+                                <div className="hidden sm:flex items-center gap-5 lg:gap-6">
+        <button onClick={() => setIsDark(!isDark)} className="w-10 h-10 flex justify-center items-center rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors bg-gray-50 dark:bg-[#111] border border-gray-200 dark:border-gray-800 shadow-sm dark:shadow-none">
+            {isDark ? <i className="fas fa-sun text-yellow-500 text-[15px]"></i> : <i className="fas fa-moon text-blue-500 text-[15px]"></i>}
+        </button>
+        
+        {/* Компактный профиль только с аватаркой и выходом */}
+        <div className="flex items-center gap-3 bg-gray-100 dark:bg-[#222] p-1.5 pr-4 rounded-full border border-gray-200 dark:border-gray-700 group cursor-pointer shrink-0 transition-all hover:border-red-500/30 dark:hover:border-red-500/30" onClick={logout} title="Выйти">
+            <img src={user.photoURL} alt="Avatar" className="w-8 h-8 rounded-full shadow-sm" />
+            <i className="fas fa-sign-out-alt text-gray-400 dark:text-gray-500 group-hover:text-red-500 dark:group-hover:text-red-400 transition-colors text-base"></i>
+        </div>
+    </div>
+</div>
                         </div>
 
                         {/* ВКЛАДКА: КАЛЕНДАРЬ */}
