@@ -1240,13 +1240,14 @@
                                     
                                     <form onSubmit={handleAddRubricToMonth} className="flex flex-col gap-4">
                                         <div>
-                                            <select name="name" required className="w-full h-[48px] bg-gray-50 dark:bg-[#222225] border border-gray-300 dark:border-[#3f3f46] rounded-[12px] px-4 text-gray-900 dark:text-white text-[15px] appearance-none outline-none focus:border-blue-500 transition-colors bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2212%22%20height%3D%2212%22%20fill%3D%22%23a1a1aa%22%20viewBox%3D%220%200%2016%2016%22%3E%3Cpath%20d%3D%22M8%2011L3%206h10l-5%205z%22%2F%3E%3C%2Fsvg%3E')] bg-[position:right_16px_center] bg-no-repeat cursor-pointer text-left m-0 box-border">
-                                                {availableBaseRubrics.length === 0 ? <option value="">Все рубрики добавлены</option> : availableBaseRubrics.map(r => <option key={r.id} value={r.name}>{r.name}</option>)}
-                                            </select>
+                                            <select name="name" required defaultValue="" className="w-full h-[48px] bg-gray-50 dark:bg-[#222225] border border-gray-300 dark:border-[#3f3f46] rounded-[12px] px-4 text-gray-900 dark:text-white text-[15px] appearance-none outline-none focus:border-blue-500 transition-colors bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2212%22%20height%3D%2212%22%20fill%3D%22%23a1a1aa%22%20viewBox%3D%220%200%2016%2016%22%3E%3Cpath%20d%3D%22M8%2011L3%206h10l-5%205z%22%2F%3E%3C%2Fsvg%3E')] bg-[position:right_16px_center] bg-no-repeat cursor-pointer text-left m-0 box-border">
+    <option value="" disabled hidden>Выбрать рубрику</option>
+    {availableBaseRubrics.length === 0 ? <option value="" disabled>Все рубрики добавлены</option> : availableBaseRubrics.map(r => <option key={r.id} value={r.name}>{r.name}</option>)}
+</select>
                                             <p className="text-[13px] text-gray-500 mt-2 font-medium">Доступно: {availableBaseRubrics.length} уникальных рубрик</p>
                                         </div>
 
-                                        <input name="plan" type="number" min="1" required defaultValue="4" placeholder="План постов на месяц (шт)" className="w-full h-[48px] bg-gray-50 dark:bg-[#222225] border border-gray-300 dark:border-[#3f3f46] rounded-[12px] px-4 text-gray-900 dark:text-white text-[15px] outline-none focus:border-blue-500 transition-colors text-left m-0 box-border" />
+                                        <input name="plan" type="number" min="1" placeholder="Указать количество постов на месяц" className="w-full h-[48px] bg-gray-50 dark:bg-[#222225] border border-gray-300 dark:border-[#3f3f46] rounded-[12px] px-4 text-gray-900 dark:text-white text-[15px] outline-none focus:border-blue-500 transition-colors text-left m-0 box-border" />
 
                                         <div className="h-px w-full bg-gray-200 dark:bg-[#27272a] my-2"></div>
 
