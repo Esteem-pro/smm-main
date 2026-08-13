@@ -1386,7 +1386,7 @@
                                     
                                     <form onSubmit={handleSavePost} className="flex flex-col gap-4">
                                         
-                                        <input name="desc" defaultValue={postModal.post?.desc} required placeholder="Тема / Описание" className="w-full h-[48px] bg-gray-50 dark:bg-[#222225] border border-gray-300 dark:border-[#3f3f46] rounded-[12px] px-4 text-gray-900 dark:text-white text-[15px] outline-none focus:border-blue-500 transition-colors appearance-none text-left m-0 box-border" />
+                                        <input name="desc" autoComplete="off" defaultValue={postModal.post?.desc} required placeholder="Тема / Описание" className="w-full h-[48px] bg-gray-50 dark:bg-[#222225] border border-gray-300 dark:border-[#3f3f46] rounded-[12px] px-4 text-gray-900 dark:text-white text-[15px] outline-none focus:border-blue-500 transition-colors appearance-none text-left m-0 box-border" />
                                         
                                         <input name="date" type="date" defaultValue={defaultDateStr} required style={{ colorScheme: isDark ? 'dark' : 'light' }} className="w-full h-[48px] flex items-center justify-start bg-gray-50 dark:bg-[#222225] border border-gray-300 dark:border-[#3f3f46] rounded-[12px] px-4 text-gray-900 dark:text-white text-[15px] outline-none focus:border-blue-500 transition-colors appearance-none text-left m-0 box-border" />
                                         
