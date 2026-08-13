@@ -1383,7 +1383,7 @@
                                         </select>
                                         
                                         <select name="rubric" defaultValue={postModal.post?.rubric || ""} required className="w-full h-[48px] bg-gray-50 dark:bg-[#222225] border border-gray-300 dark:border-[#3f3f46] rounded-[12px] px-4 text-gray-900 dark:text-white text-[15px] outline-none focus:border-blue-500 transition-colors appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2212%22%20height%3D%2212%22%20fill%3D%22%23a1a1aa%22%20viewBox%3D%220%200%2016%2016%22%3E%3Cpath%20d%3D%22M8%2011L3%206h10l-5%205z%22%2F%3E%3C%2Fsvg%3E')] bg-[position:right_16px_center] bg-no-repeat cursor-pointer text-left m-0 box-border">
-                                            <option value="" disabled hidden>Выбрать рубрику</option>
+                                            <option value="" disabled hidden>Выберите рубрику</option>
                                             {currentMonthRubrics.length === 0 && <option value="" disabled>Сначала добавьте рубрики в месяц</option>}
                                             {currentMonthRubrics.map(r => <option key={r.id} value={r.name}>{r.name}</option>)}
                                         </select>
@@ -1457,7 +1457,7 @@
                                             <p className="text-[13px] text-gray-500 mt-2 font-medium">Доступно: {filteredModalRubrics.length} из {availableBaseRubrics.length} уникальных рубрик</p>
                                         </div>
 
-                                        <input name="plan" type="number" min="1" placeholder="Указать количество постов на месяц" required className="w-full h-[48px] bg-gray-50 dark:bg-[#222225] border border-gray-300 dark:border-[#3f3f46] rounded-[12px] px-4 text-gray-900 dark:text-white text-[15px] outline-none focus:border-blue-500 transition-colors text-left m-0 box-border shadow-sm" />
+                                        <input name="plan" type="number" min="1" placeholder="Укажите количество постов на месяц" required className="w-full h-[48px] bg-gray-50 dark:bg-[#222225] border border-gray-300 dark:border-[#3f3f46] rounded-[12px] px-4 text-gray-900 dark:text-white text-[15px] outline-none focus:border-blue-500 transition-colors text-left m-0 box-border shadow-sm" />
 
                                         <div className="h-px w-full bg-gray-200 dark:bg-[#27272a] my-2"></div>
 
