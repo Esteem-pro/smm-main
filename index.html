@@ -254,6 +254,16 @@
             const [deletePrompt, setDeletePrompt] = useState({ isOpen: false, post: null });
 
             const [postModal, setPostModal] = useState({ isOpen: false, post: null });
+            // Состояния для поиска рубрики внутри поста
+            const [postRubricSearchQuery, setPostRubricSearchQuery] = useState('');
+            const [isPostRubricDropdownOpen, setIsPostRubricDropdownOpen] = useState(false);
+
+            useEffect(() => {
+                // При открытии окна подставляем рубрику поста (если редактируем) или очищаем
+                if (postModal.isOpen) {
+                    setPostRubricSearchQuery(postModal.post?.rubric || '');
+                }
+            }, [postModal.isOpen, postModal.post]);
             
             // Состояния для кастомного умного поиска рубрик
             const [rubricModalOpen, setRubricModalOpen] = useState(false);
@@ -680,6 +690,11 @@
             );
 
             const isRubricValid = availableBaseRubrics.some(r => r.name === rubricSearchQuery);
+            // Фильтрация рубрик текущего месяца для окна создания публикации
+            const filteredPostRubrics = currentMonthRubrics.filter(r => 
+                r.name.toLowerCase().includes(postRubricSearchQuery.toLowerCase())
+            );
+            const isPostRubricValid = currentMonthRubrics.some(r => r.name === postRubricSearchQuery);
 
             const statusOrder = { 'active': 1, 'new': 2, 'archived': 3 };
             const sortedRubricsBase = [...rubricsBase].sort((a, b) => statusOrder[a.status] - statusOrder[b.status]);
@@ -1382,11 +1397,47 @@
                                             <option value="pub">Опубликовано</option>
                                         </select>
                                         
-                                        <select name="rubric" defaultValue={postModal.post?.rubric || ""} required className="w-full h-[48px] bg-gray-50 dark:bg-[#222225] border border-gray-300 dark:border-[#3f3f46] rounded-[12px] px-4 text-gray-900 dark:text-white text-[15px] outline-none focus:border-blue-500 transition-colors appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2212%22%20height%3D%2212%22%20fill%3D%22%23a1a1aa%22%20viewBox%3D%220%200%2016%2016%22%3E%3Cpath%20d%3D%22M8%2011L3%206h10l-5%205z%22%2F%3E%3C%2Fsvg%3E')] bg-[position:right_16px_center] bg-no-repeat cursor-pointer text-left m-0 box-border">
-                                            <option value="" disabled hidden>Выберите рубрику</option>
-                                            {currentMonthRubrics.length === 0 && <option value="" disabled>Сначала добавьте рубрики в месяц</option>}
-                                            {currentMonthRubrics.map(r => <option key={r.id} value={r.name}>{r.name}</option>)}
-                                        </select>
+                                        {/* ПОЛЕ ПОИСКА РУБРИКИ ДЛЯ ПОСТА */}
+                                        <div className="relative z-10">
+                                            <input 
+                                                type="text" 
+                                                name="rubric" 
+                                                placeholder="🔍 Начните вводить рубрику..." 
+                                                value={postRubricSearchQuery} 
+                                                autoComplete="off"
+                                                required
+                                                onChange={(e) => {
+                                                    setPostRubricSearchQuery(e.target.value);
+                                                    setIsPostRubricDropdownOpen(true);
+                                                }} 
+                                                onFocus={() => setIsPostRubricDropdownOpen(true)}
+                                                onBlur={() => setTimeout(() => setIsPostRubricDropdownOpen(false), 200)}
+                                                className="w-full h-[48px] bg-gray-50 dark:bg-[#222225] border border-gray-300 dark:border-[#3f3f46] rounded-[12px] px-4 text-gray-900 dark:text-white text-[15px] outline-none focus:border-blue-500 transition-colors shadow-sm"
+                                            />
+                                            
+                                            {isPostRubricDropdownOpen && (
+                                                <div className="absolute z-50 w-full mt-2 bg-white dark:bg-[#2a2a2e] border border-gray-200 dark:border-[#3f3f46] rounded-xl shadow-xl max-h-48 overflow-y-auto overflow-x-hidden">
+                                                    {currentMonthRubrics.length === 0 ? (
+                                                        <div className="px-4 py-3 text-sm text-red-500 dark:text-red-400">Сначала добавьте рубрики на этот месяц</div>
+                                                    ) : filteredPostRubrics.length === 0 ? (
+                                                        <div className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">Такой рубрики в плане нет</div>
+                                                    ) : (
+                                                        filteredPostRubrics.map(r => (
+                                                            <div 
+                                                                key={r.id} 
+                                                                onClick={() => {
+                                                                    setPostRubricSearchQuery(r.name);
+                                                                    setIsPostRubricDropdownOpen(false);
+                                                                }}
+                                                                className="px-4 py-3 text-sm text-gray-900 dark:text-white cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-600/20 border-b border-gray-100 dark:border-gray-800 last:border-0 transition-colors"
+                                                            >
+                                                                {r.name}
+                                                            </div>
+                                                        ))
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
                                         
                                         <div className="h-px w-full bg-gray-200 dark:bg-[#27272a] my-2"></div>
 
@@ -1396,7 +1447,7 @@
                                                 <button type="button" onClick={() => setPostModal({isOpen: false, post: null})} className="px-5 py-3 font-semibold text-[15px] bg-gray-100 dark:bg-[#222225] hover:bg-gray-200 dark:hover:bg-[#2a2a2e] text-gray-700 dark:text-gray-300 rounded-xl transition-colors">
                                                     Отмена
                                                 </button>
-                                                <button type="submit" disabled={currentMonthRubrics.length===0} className="px-5 py-3 font-semibold text-[15px] bg-blue-600 dark:bg-[#2f6aef] hover:bg-blue-700 dark:hover:bg-blue-500 text-white rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                                                <button type="submit" disabled={currentMonthRubrics.length === 0 || !isPostRubricValid} className="px-5 py-3 font-semibold text-[15px] bg-blue-600 dark:bg-[#2f6aef] hover:bg-blue-700 dark:hover:bg-blue-500 text-white rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-md">
                                                     Сохранить
                                                 </button>
                                             </div>
