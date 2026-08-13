@@ -415,7 +415,22 @@ setSettings({
                     setPostModal({ isOpen: false, post: null });
                 }
             };
+const handleDeletePost = () => {
+                if(!postModal.post?.id) return;
 
+                const grace = Number(settings.deleteGracePeriodMinutes);
+                const timeSinceLastUpdate = postModal.post.updatedAt ? (Date.now() - postModal.post.updatedAt) / 60000 : Infinity;
+
+                if (settings.deleteRequireReason && timeSinceLastUpdate >= grace) {
+                    setDeletePrompt({ isOpen: true, post: postModal.post });
+                    setPostModal({ isOpen: false, post: null });
+                } else {
+                    if(confirm('Точно удалить этот пост?')) {
+                        db.ref(`shared_workspace/posts/${postModal.post.id}`).remove();
+                        setPostModal({ isOpen: false, post: null });
+                    }
+                }
+            };
 const handleConfirmReschedule = (e) => {
                 e.preventDefault();
                 // Получаем текст и сразу удаляем пробелы по краям
