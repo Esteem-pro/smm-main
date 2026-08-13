@@ -246,6 +246,10 @@
             
             const [reschedulePrompt, setReschedulePrompt] = useState({ isOpen: false, post: null, oldDateStr: '', newDateStr: '' });
 
+            const [deleteLogs, setDeleteLogs] = useState([]);
+const [collapsedDeleteLogs, setCollapsedDeleteLogs] = useState({});
+const [deletePrompt, setDeletePrompt] = useState({ isOpen: false, post: null });
+
             const [postModal, setPostModal] = useState({ isOpen: false, post: null });
             const [rubricModalOpen, setRubricModalOpen] = useState(false);
             const [copyPlanModalOpen, setCopyPlanModalOpen] = useState(false);
@@ -300,12 +304,15 @@
                         setMonthlyRubrics(toArray(data.monthlyRubrics));
                         setAdmins(toArray(data.admins));
                         setRescheduleLogs(toArray(data.rescheduleLogs));
-                        
+                        setDeleteLogs(toArray(data.deleteLogs));
+
                         const dbSettings = data.settings || {};
-                        setSettings({
-                            requireReason: dbSettings.requireReason !== undefined ? dbSettings.requireReason : true,
-                            gracePeriodMinutes: dbSettings.gracePeriodMinutes !== undefined ? Number(dbSettings.gracePeriodMinutes) : 5
-                        });
+setSettings({
+    requireReason: dbSettings.requireReason !== undefined ? dbSettings.requireReason : true,
+    gracePeriodMinutes: dbSettings.gracePeriodMinutes !== undefined ? Number(dbSettings.gracePeriodMinutes) : 5,
+    deleteRequireReason: dbSettings.deleteRequireReason !== undefined ? dbSettings.deleteRequireReason : true,
+    deleteGracePeriodMinutes: dbSettings.deleteGracePeriodMinutes !== undefined ? Number(dbSettings.deleteGracePeriodMinutes) : 5
+});
                         
                         setDataLoading(false);
                     };
@@ -431,10 +438,46 @@
             };
 
             const handleDeletePost = () => {
-                if(postModal.post?.id && confirm('Точно удалить этот пост?')) {
-                    db.ref(`shared_workspace/posts/${postModal.post.id}`).remove();
+                if(!postModal.post?.id) return;
+
+                const grace = Number(settings.deleteGracePeriodMinutes);
+                const timeSinceLastUpdate = postModal.post.updatedAt ? (Date.now() - postModal.post.updatedAt) / 60000 : Infinity;
+
+                if (settings.deleteRequireReason && timeSinceLastUpdate >= grace) {
+                    setDeletePrompt({ isOpen: true, post: postModal.post });
                     setPostModal({ isOpen: false, post: null });
+                } else {
+                    if(confirm('Точно удалить этот пост?')) {
+                        db.ref(`shared_workspace/posts/${postModal.post.id}`).remove();
+                        setPostModal({ isOpen: false, post: null });
+                    }
                 }
+            };
+
+            const handleConfirmDelete = (e) => {
+                e.preventDefault();
+                const reason = new FormData(e.target).get('reason');
+                
+                db.ref(`shared_workspace/posts/${deletePrompt.post.id}`).remove();
+                
+                const logId = db.ref().push().key;
+                const dateStr = `${deletePrompt.post.day} ${monthNames[deletePrompt.post.month]} ${deletePrompt.post.year}`;
+                
+                db.ref(`shared_workspace/deleteLogs/${logId}`).set({
+                    postId: deletePrompt.post.id,
+                    rubric: deletePrompt.post.rubric,
+                    desc: deletePrompt.post.desc,
+                    dateStr: dateStr,
+                    reason: reason,
+                    author: user.displayName || user.email,
+                    timestamp: Date.now()
+                });
+
+                setDeletePrompt({ isOpen: false, post: null });
+            };
+
+            const handleDeleteDeleteLog = (logId) => {
+                if(confirm('Удалить этот лог удаления?')) db.ref(`shared_workspace/deleteLogs/${logId}`).remove();
             };
 
             const handleDragStart = (e, postId) => {
@@ -619,6 +662,21 @@
                 acc[log.rubric].push(log);
                 return acc;
             }, {});
+
+            const currentMonthDeleteLogs = deleteLogs.filter(log => {
+                const logDate = new Date(log.timestamp);
+                return logDate.getMonth() === currentMonth && logDate.getFullYear() === currentYear;
+            });
+
+            const groupedDeleteLogs = currentMonthDeleteLogs.reduce((acc, log) => {
+                if(!acc[log.rubric]) acc[log.rubric] = [];
+                acc[log.rubric].push(log);
+                return acc;
+            }, {});
+
+            const toggleDeleteLogSection = (rubric) => {
+                setCollapsedDeleteLogs(prev => ({...prev, [rubric]: !prev[rubric]}));
+            };
 
             const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
             let startDay = new Date(currentYear, currentMonth, 1).getDay();
@@ -1017,6 +1075,33 @@
                                                 className="w-16 bg-gray-50 dark:bg-[#222225] border border-gray-300 dark:border-[#3f3f46] rounded-xl px-2 py-1.5 text-gray-900 dark:text-white text-sm outline-none focus:border-blue-500 text-center shrink-0 font-mono"
                                             />
                                         </div>
+                                        <div className="h-px w-full bg-gray-100 dark:bg-[#3f3f46] my-5"></div>
+
+{/* НАСТРОЙКИ УДАЛЕНИЯ */}
+<div className="flex items-center justify-between mb-5">
+    <div className="flex flex-col">
+        <label className="text-[14px] text-gray-800 dark:text-gray-200 font-medium">Причина удаления</label>
+        <span className="text-[11px] text-gray-500">Обязательное окно при удалении поста</span>
+    </div>
+    <button
+        onClick={() => db.ref('shared_workspace/settings/deleteRequireReason').set(!settings.deleteRequireReason)}
+        className={`w-12 h-7 rounded-full relative transition-colors shrink-0 ${settings.deleteRequireReason ? 'bg-red-600' : 'bg-gray-300 dark:bg-[#3f3f46]'}`}
+    >
+        <div className={`w-5 h-5 bg-white rounded-full absolute top-1 transition-transform ${settings.deleteRequireReason ? 'left-6' : 'left-1'}`}></div>
+    </button>
+</div>
+
+<div className="flex items-center justify-between transition-opacity" style={{ opacity: settings.deleteRequireReason ? 1 : 0.4, pointerEvents: settings.deleteRequireReason ? 'auto' : 'none' }}>
+    <div className="flex flex-col">
+        <label className="text-[14px] text-gray-800 dark:text-gray-200 font-medium">Окно без причины</label>
+        <span className="text-[11px] text-gray-500">В минутах (после создания поста)</span>
+    </div>
+    <input
+        type="number" min="0" value={settings.deleteGracePeriodMinutes}
+        onChange={(e) => db.ref('shared_workspace/settings/deleteGracePeriodMinutes').set(e.target.value === '' ? 0 : parseInt(e.target.value))}
+        className="w-16 bg-gray-50 dark:bg-[#222225] border border-gray-300 dark:border-[#3f3f46] rounded-xl px-2 py-1.5 text-gray-900 dark:text-white text-sm outline-none focus:border-red-500 text-center shrink-0 font-mono"
+    />
+</div>
                                     </div>
 
                                     <div className="bg-gray-50 dark:bg-[#111113] border border-gray-200 dark:border-[#27272a] rounded-bento p-5 sm:p-6 flex-grow shadow-sm dark:shadow-none">
@@ -1097,24 +1182,86 @@
                                                                         </div>
                                                                         
                                                                         <button 
-                                                                            onClick={(e) => { e.stopPropagation(); handleDeleteLog(log.id); }} 
-                                                                            className="absolute right-3 top-3 text-gray-400 dark:text-gray-600 hover:text-red-600 dark:hover:text-red-500 p-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all"
-                                                                            title="Удалить лог переноса"
-                                                                        >
-                                                                            <i className="fas fa-trash text-sm"></i>
-                                                                        </button>
-                                                                    </div>
-                                                                ))}
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                );
-                                            })}
-                                        </div>
-                                    )}
+                                                                        onClick={(e) => { e.stopPropagation(); handleDeleteLog(log.id); }} 
+                                                                        className="absolute right-3 top-3 text-gray-400 dark:text-gray-600 hover:text-red-600 dark:hover:text-red-500 p-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all"
+                                                                        title="Удалить лог переноса"
+                                                                    >
+                                                                        <i className="fas fa-trash text-sm"></i>
+                                                                    </button>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+
+                                {/* ДОБАВЛЕННЫЙ БЛОК: АНАЛИТИКА УДАЛЕНИЙ */}
+                                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mt-8">
+                                    <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                                        <i className="fas fa-trash-alt text-red-500"></i> Удаленные посты за {monthNames[currentMonth]}
+                                    </h2>
+                                    <span className="text-xs bg-gray-100 dark:bg-[#222225] border border-gray-200 dark:border-[#3f3f46] text-gray-600 dark:text-gray-300 px-3 py-1.5 rounded-lg font-mono">Всего: {currentMonthDeleteLogs.length}</span>
                                 </div>
+
+                                {Object.keys(groupedDeleteLogs).length === 0 ? (
+                                    <div className="flex flex-col items-center justify-center flex-grow text-gray-400 dark:text-gray-500 gap-3 py-10">
+                                        <i className="fas fa-check-circle text-4xl opacity-20"></i>
+                                        <p className="text-sm">Удалений в этом месяце не было.</p>
+                                    </div>
+                                ) : (
+                                    <div className="flex flex-col gap-4 overflow-y-auto">
+                                        {Object.entries(groupedDeleteLogs).map(([rubric, logs]) => {
+                                            const isCollapsed = collapsedDeleteLogs[rubric];
+                                            return (
+                                                <div key={rubric} className="bg-gray-50 dark:bg-[#111113] border border-red-200 dark:border-red-900/30 rounded-2xl overflow-hidden transition-all shadow-sm dark:shadow-none">
+                                                    <div onClick={() => toggleDeleteLogSection(rubric)} className="bg-red-50/50 dark:bg-[#1f1515] px-5 py-4 border-b border-red-200/50 dark:border-red-900/30 flex justify-between items-center cursor-pointer hover:bg-red-100/50 dark:hover:bg-[#2a1a1a] transition-colors select-none">
+                                                        <div className="flex items-center gap-3">
+                                                            <i className={`fas fa-chevron-${isCollapsed ? 'right' : 'down'} text-red-400 text-xs w-3 text-center`}></i>
+                                                            <h3 className="font-bold text-gray-900 dark:text-white text-sm">{rubric}</h3>
+                                                        </div>
+                                                        <span className="text-xs bg-red-100 dark:bg-red-900/50 text-red-600 dark:text-red-400 px-2 py-0.5 rounded-md">{logs.length} шт.</span>
+                                                    </div>
+                                                    
+                                                    {!isCollapsed && (
+                                                        <div className="p-0">
+                                                            {logs.sort((a,b) => b.timestamp - a.timestamp).map((log, idx) => (
+                                                                <div key={log.timestamp + idx} className="p-4 sm:p-5 border-b border-gray-200 dark:border-[#27272a] last:border-0 flex flex-col gap-3 sm:gap-4 hover:bg-gray-100 dark:hover:bg-[#151518] transition-colors relative group">
+                                                                    <div className="flex flex-col md:flex-row justify-between md:items-center gap-2 pr-6">
+                                                                        <div className="font-medium text-[13px] sm:text-sm text-gray-800 dark:text-gray-200 line-through decoration-red-500/50">
+                                                                            <i className="fas fa-file-alt text-gray-400 dark:text-gray-600 mr-2"></i>{log.desc || 'Без описания'}
+                                                                        </div>
+                                                                        <div className="flex items-center gap-2 text-xs font-mono text-gray-500">
+                                                                            <i className="fas fa-calendar-times text-red-400"></i> {log.dateStr}
+                                                                        </div>
+                                                                    </div>
+                                                                    <div className="bg-red-50 dark:bg-red-500/10 border border-red-100 dark:border-red-500/20 text-red-700 dark:text-red-200 text-[13px] sm:text-sm p-3 rounded-xl italic">
+                                                                        "{log.reason}"
+                                                                    </div>
+                                                                    <div className="text-[10px] text-gray-400 dark:text-gray-500 flex justify-end items-center gap-3 pr-2">
+                                                                        <span><i className="fas fa-user mr-1 text-red-400"></i>{log.author}</span>
+                                                                        <span><i className="fas fa-clock mr-1"></i>{new Date(log.timestamp).toLocaleString("ru-RU")}</span>
+                                                                    </div>
+                                                                    
+                                                                    <button onClick={(e) => { e.stopPropagation(); handleDeleteDeleteLog(log.id); }} className="absolute right-3 top-3 text-gray-400 dark:text-gray-600 hover:text-red-600 dark:hover:text-red-500 p-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all" title="Удалить лог">
+                                                                        <i className="fas fa-trash text-sm"></i>
+                                                                    </button>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+                                {/* КОНЕЦ ДОБАВЛЕННОГО БЛОКА */}
+
                             </div>
-                        )}
+                        </div>
+                    )}
 
 
                         {/* МОДАЛЬНЫЕ ОКНА */}
@@ -1263,6 +1410,37 @@
                                 </div>
                             </div>
                         )}
+                        {deletePrompt.isOpen && (
+    <div className="fixed inset-0 bg-black/50 dark:bg-black/80 backdrop-blur-sm dark:backdrop-blur-md flex items-center justify-center z-[60] p-4">
+        <div className="bg-white dark:bg-[#18181b] border border-red-500/30 rounded-3xl p-6 sm:p-8 w-full max-w-[500px] shadow-2xl relative" onClick={(e) => e.stopPropagation()}>
+            <div className="w-12 h-12 bg-red-100 dark:bg-red-500/20 text-red-600 flex items-center justify-center rounded-2xl mb-4 text-xl border border-red-200 dark:border-red-500/30">
+                <i className="fas fa-trash-alt"></i>
+            </div>
+            <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mb-2">Удаление публикации</h2>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
+                Вы удаляете пост <strong className="text-gray-900 dark:text-white">"{deletePrompt.post?.desc}"</strong>. Так как пост был запланирован давно, необходимо указать причину.
+            </p>
+            
+            <form onSubmit={handleConfirmDelete} className="flex flex-col gap-4">
+                <div>
+                    <label className="text-sm font-bold text-red-600 dark:text-red-400 mb-2 block">Обязательно укажите причину удаления:</label>
+                    <textarea name="reason" rows="3" required placeholder="Например: Неактуально / Отбраковка товара" className="w-full bg-gray-50 dark:bg-[#222225] border border-red-300 dark:border-red-500/50 rounded-xl p-4 text-gray-900 dark:text-white text-[15px] outline-none focus:border-red-500 transition-colors resize-none"></textarea>
+                </div>
+                
+                <div className="h-px w-full bg-gray-200 dark:bg-[#27272a] my-2"></div>
+                
+                <div className="flex justify-end gap-3">
+                    <button type="button" onClick={() => setDeletePrompt({ isOpen: false, post: null })} className="px-5 py-3 font-semibold text-[15px] bg-gray-100 dark:bg-[#222225] hover:bg-gray-200 text-gray-700 dark:text-gray-300 rounded-xl transition-colors">
+                        Отмена
+                    </button>
+                    <button type="submit" className="px-5 py-3 font-semibold text-[15px] bg-red-600 hover:bg-red-700 text-white rounded-xl transition-colors">
+                        Удалить навсегда
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+)}
                     </div>
                 </div>
             );
