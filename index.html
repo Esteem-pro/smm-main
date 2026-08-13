@@ -143,12 +143,10 @@
 
         <!-- Переключатель (Pills) -->
         <div class="flex items-center p-1 bg-gray-100/80 dark:bg-[#18181b]/80 rounded-[14px] border border-gray-200/50 dark:border-[#27272a]/50">
-            <!-- Активная вкладка -->
             <a href="index.html" class="flex items-center gap-2 px-4 py-1.5 rounded-xl text-sm font-bold transition-all text-blue-600 dark:text-blue-400 bg-white dark:bg-[#27272a] shadow-sm cursor-default">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
                 Контент-центр
             </a>
-            <!-- Неактивная вкладка -->
             <a href="analytics.html" class="flex items-center gap-2 px-4 py-1.5 rounded-xl text-sm font-bold transition-all text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white hover:bg-gray-200/50 dark:hover:bg-white/5">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
                 Аналитика
@@ -237,7 +235,12 @@
             const [posts, setPosts] = useState([]);
             const [monthlyRubrics, setMonthlyRubrics] = useState([]);
 
-            const [settings, setSettings] = useState({ requireReason: true, gracePeriodMinutes: 5 });
+            const [settings, setSettings] = useState({ 
+                requireReason: true, 
+                gracePeriodMinutes: 5,
+                deleteRequireReason: true,
+                deleteGracePeriodMinutes: 5
+            });
 
             const [admins, setAdmins] = useState([]);
             const [rescheduleLogs, setRescheduleLogs] = useState([]);
@@ -247,12 +250,16 @@
             const [reschedulePrompt, setReschedulePrompt] = useState({ isOpen: false, post: null, oldDateStr: '', newDateStr: '' });
 
             const [deleteLogs, setDeleteLogs] = useState([]);
-const [collapsedDeleteLogs, setCollapsedDeleteLogs] = useState({});
-const [deletePrompt, setDeletePrompt] = useState({ isOpen: false, post: null });
+            const [collapsedDeleteLogs, setCollapsedDeleteLogs] = useState({});
+            const [deletePrompt, setDeletePrompt] = useState({ isOpen: false, post: null });
 
             const [postModal, setPostModal] = useState({ isOpen: false, post: null });
+            
+            // Состояния для кастомного умного поиска рубрик
             const [rubricModalOpen, setRubricModalOpen] = useState(false);
             const [rubricSearchQuery, setRubricSearchQuery] = useState('');
+            const [isRubricDropdownOpen, setIsRubricDropdownOpen] = useState(false);
+
             const [copyPlanModalOpen, setCopyPlanModalOpen] = useState(false);
             const [editingPlanId, setEditingPlanId] = useState(null);
             
@@ -291,7 +298,10 @@ const [deletePrompt, setDeletePrompt] = useState({ isOpen: false, post: null });
                             
                             const socKey = db.ref().push().key;
                             updates[`socials/${socKey}`] = { name: 'Instagram', year: 2026, month: 7 };
-                            updates[`settings`] = { requireReason: true, gracePeriodMinutes: 5 };
+                            updates[`settings`] = { 
+                                requireReason: true, gracePeriodMinutes: 5,
+                                deleteRequireReason: true, deleteGracePeriodMinutes: 5
+                            };
                             
                             workspaceRef.update(updates).catch(err => {
                                 if (err.code === 'PERMISSION_DENIED') setAccessDenied(true);
@@ -308,12 +318,12 @@ const [deletePrompt, setDeletePrompt] = useState({ isOpen: false, post: null });
                         setDeleteLogs(toArray(data.deleteLogs));
 
                         const dbSettings = data.settings || {};
-setSettings({
-    requireReason: dbSettings.requireReason !== undefined ? dbSettings.requireReason : true,
-    gracePeriodMinutes: dbSettings.gracePeriodMinutes !== undefined ? Number(dbSettings.gracePeriodMinutes) : 5,
-    deleteRequireReason: dbSettings.deleteRequireReason !== undefined ? dbSettings.deleteRequireReason : true,
-    deleteGracePeriodMinutes: dbSettings.deleteGracePeriodMinutes !== undefined ? Number(dbSettings.deleteGracePeriodMinutes) : 5
-});
+                        setSettings({
+                            requireReason: dbSettings.requireReason !== undefined ? dbSettings.requireReason : true,
+                            gracePeriodMinutes: dbSettings.gracePeriodMinutes !== undefined ? Number(dbSettings.gracePeriodMinutes) : 5,
+                            deleteRequireReason: dbSettings.deleteRequireReason !== undefined ? dbSettings.deleteRequireReason : true,
+                            deleteGracePeriodMinutes: dbSettings.deleteGracePeriodMinutes !== undefined ? Number(dbSettings.deleteGracePeriodMinutes) : 5
+                        });
                         
                         setDataLoading(false);
                     };
@@ -416,7 +426,8 @@ setSettings({
                     setPostModal({ isOpen: false, post: null });
                 }
             };
-const handleDeletePost = () => {
+
+            const handleDeletePost = () => {
                 if(!postModal.post?.id) return;
 
                 const grace = Number(settings.deleteGracePeriodMinutes);
@@ -432,12 +443,11 @@ const handleDeletePost = () => {
                     }
                 }
             };
-const handleConfirmReschedule = (e) => {
+
+            const handleConfirmReschedule = (e) => {
                 e.preventDefault();
-                // Получаем текст и сразу удаляем пробелы по краям
                 const reason = new FormData(e.target).get('reason').trim();
                 
-                // Если после удаления пробелов текст оказался пустым — не пропускаем
                 if (!reason) {
                     alert('Пожалуйста, напишите причину переноса (пробелы не считаются).');
                     return;
@@ -462,10 +472,8 @@ const handleConfirmReschedule = (e) => {
 
             const handleConfirmDelete = (e) => {
                 e.preventDefault();
-                // Получаем текст и сразу удаляем пробелы по краям
                 const reason = new FormData(e.target).get('reason').trim();
                 
-                // Проверка на пустоту
                 if (!reason) {
                     alert('Пожалуйста, укажите причину удаления (пробелы не считаются).');
                     return;
@@ -528,7 +536,7 @@ const handleConfirmReschedule = (e) => {
             const handleAddRubricToMonth = (e) => {
                 e.preventDefault();
                 const formData = new FormData(e.target);
-                const selectedName = formData.get('name');
+                const selectedName = formData.get('name'); // Берется из нашего кастомного инпута
                 if(!selectedName) return;
                 
                 const key = db.ref().push().key;
@@ -662,15 +670,17 @@ const handleConfirmReschedule = (e) => {
                 return { ...r, fact };
             });
 
-            // Исключаем уже добавленные в месяц и рубрики со статусом 'archived'
-const availableBaseRubrics = rubricsBase.filter(baseObj => 
-    baseObj.status !== 'archived' && !currentMonthRubrics.some(r => r.name === baseObj.name)
-);
+            // Подготовка данных для умного поиска
+            const availableBaseRubrics = rubricsBase.filter(baseObj => 
+                baseObj.status !== 'archived' && !currentMonthRubrics.some(r => r.name === baseObj.name)
+            );
 
-// Фильтруем по поисковому запросу
-const filteredModalRubrics = availableBaseRubrics.filter(r => 
-    r.name.toLowerCase().includes(rubricSearchQuery.toLowerCase())
-);
+            const filteredModalRubrics = availableBaseRubrics.filter(r => 
+                r.name.toLowerCase().includes(rubricSearchQuery.toLowerCase())
+            );
+
+            const isRubricValid = availableBaseRubrics.some(r => r.name === rubricSearchQuery);
+
             const statusOrder = { 'active': 1, 'new': 2, 'archived': 3 };
             const sortedRubricsBase = [...rubricsBase].sort((a, b) => statusOrder[a.status] - statusOrder[b.status]);
 
@@ -1099,31 +1109,31 @@ const filteredModalRubrics = availableBaseRubrics.filter(r =>
                                         </div>
                                         <div className="h-px w-full bg-gray-100 dark:bg-[#3f3f46] my-5"></div>
 
-{/* НАСТРОЙКИ УДАЛЕНИЯ */}
-<div className="flex items-center justify-between mb-5">
-    <div className="flex flex-col">
-        <label className="text-[14px] text-gray-800 dark:text-gray-200 font-medium">Причина удаления</label>
-        <span className="text-[11px] text-gray-500">Обязательное окно при удалении поста</span>
-    </div>
-    <button
-        onClick={() => db.ref('shared_workspace/settings/deleteRequireReason').set(!settings.deleteRequireReason)}
-        className={`w-12 h-7 rounded-full relative transition-colors shrink-0 ${settings.deleteRequireReason ? 'bg-red-600' : 'bg-gray-300 dark:bg-[#3f3f46]'}`}
-    >
-        <div className={`w-5 h-5 bg-white rounded-full absolute top-1 transition-transform ${settings.deleteRequireReason ? 'left-6' : 'left-1'}`}></div>
-    </button>
-</div>
+                                        {/* НАСТРОЙКИ УДАЛЕНИЯ */}
+                                        <div className="flex items-center justify-between mb-5">
+                                            <div className="flex flex-col">
+                                                <label className="text-[14px] text-gray-800 dark:text-gray-200 font-medium">Причина удаления</label>
+                                                <span className="text-[11px] text-gray-500">Обязательное окно при удалении поста</span>
+                                            </div>
+                                            <button
+                                                onClick={() => db.ref('shared_workspace/settings/deleteRequireReason').set(!settings.deleteRequireReason)}
+                                                className={`w-12 h-7 rounded-full relative transition-colors shrink-0 ${settings.deleteRequireReason ? 'bg-red-600' : 'bg-gray-300 dark:bg-[#3f3f46]'}`}
+                                            >
+                                                <div className={`w-5 h-5 bg-white rounded-full absolute top-1 transition-transform ${settings.deleteRequireReason ? 'left-6' : 'left-1'}`}></div>
+                                            </button>
+                                        </div>
 
-<div className="flex items-center justify-between transition-opacity" style={{ opacity: settings.deleteRequireReason ? 1 : 0.4, pointerEvents: settings.deleteRequireReason ? 'auto' : 'none' }}>
-    <div className="flex flex-col">
-        <label className="text-[14px] text-gray-800 dark:text-gray-200 font-medium">Окно без причины</label>
-        <span className="text-[11px] text-gray-500">В минутах (после создания поста)</span>
-    </div>
-    <input
-        type="number" min="0" value={settings.deleteGracePeriodMinutes}
-        onChange={(e) => db.ref('shared_workspace/settings/deleteGracePeriodMinutes').set(e.target.value === '' ? 0 : parseInt(e.target.value))}
-        className="w-16 bg-gray-50 dark:bg-[#222225] border border-gray-300 dark:border-[#3f3f46] rounded-xl px-2 py-1.5 text-gray-900 dark:text-white text-sm outline-none focus:border-red-500 text-center shrink-0 font-mono"
-    />
-</div>
+                                        <div className="flex items-center justify-between transition-opacity" style={{ opacity: settings.deleteRequireReason ? 1 : 0.4, pointerEvents: settings.deleteRequireReason ? 'auto' : 'none' }}>
+                                            <div className="flex flex-col">
+                                                <label className="text-[14px] text-gray-800 dark:text-gray-200 font-medium">Окно без причины</label>
+                                                <span className="text-[11px] text-gray-500">В минутах (после создания поста)</span>
+                                            </div>
+                                            <input
+                                                type="number" min="0" value={settings.deleteGracePeriodMinutes}
+                                                onChange={(e) => db.ref('shared_workspace/settings/deleteGracePeriodMinutes').set(e.target.value === '' ? 0 : parseInt(e.target.value))}
+                                                className="w-16 bg-gray-50 dark:bg-[#222225] border border-gray-300 dark:border-[#3f3f46] rounded-xl px-2 py-1.5 text-gray-900 dark:text-white text-sm outline-none focus:border-red-500 text-center shrink-0 font-mono"
+                                            />
+                                        </div>
                                     </div>
 
                                     <div className="bg-gray-50 dark:bg-[#111113] border border-gray-200 dark:border-[#27272a] rounded-bento p-5 sm:p-6 flex-grow shadow-sm dark:shadow-none">
@@ -1204,86 +1214,84 @@ const filteredModalRubrics = availableBaseRubrics.filter(r =>
                                                                         </div>
                                                                         
                                                                         <button 
-                                                                        onClick={(e) => { e.stopPropagation(); handleDeleteLog(log.id); }} 
-                                                                        className="absolute right-3 top-3 text-gray-400 dark:text-gray-600 hover:text-red-600 dark:hover:text-red-500 p-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all"
-                                                                        title="Удалить лог переноса"
-                                                                    >
-                                                                        <i className="fas fa-trash text-sm"></i>
-                                                                    </button>
-                                                                </div>
-                                                            ))}
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-                                )}
-
-                                {/* ДОБАВЛЕННЫЙ БЛОК: АНАЛИТИКА УДАЛЕНИЙ */}
-                                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mt-8">
-                                    <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                                        <i className="fas fa-trash-alt text-red-500"></i> Удаленные посты за {monthNames[currentMonth]}
-                                    </h2>
-                                    <span className="text-xs bg-gray-100 dark:bg-[#222225] border border-gray-200 dark:border-[#3f3f46] text-gray-600 dark:text-gray-300 px-3 py-1.5 rounded-lg font-mono">Всего: {currentMonthDeleteLogs.length}</span>
-                                </div>
-
-                                {Object.keys(groupedDeleteLogs).length === 0 ? (
-                                    <div className="flex flex-col items-center justify-center flex-grow text-gray-400 dark:text-gray-500 gap-3 py-10">
-                                        <i className="fas fa-check-circle text-4xl opacity-20"></i>
-                                        <p className="text-sm">Удалений в этом месяце не было.</p>
-                                    </div>
-                                ) : (
-                                    <div className="flex flex-col gap-4 overflow-y-auto">
-                                        {Object.entries(groupedDeleteLogs).map(([rubric, logs]) => {
-                                            const isCollapsed = collapsedDeleteLogs[rubric];
-                                            return (
-                                                <div key={rubric} className="bg-gray-50 dark:bg-[#111113] border border-red-200 dark:border-red-900/30 rounded-2xl overflow-hidden transition-all shadow-sm dark:shadow-none">
-                                                    <div onClick={() => toggleDeleteLogSection(rubric)} className="bg-red-50/50 dark:bg-[#1f1515] px-5 py-4 border-b border-red-200/50 dark:border-red-900/30 flex justify-between items-center cursor-pointer hover:bg-red-100/50 dark:hover:bg-[#2a1a1a] transition-colors select-none">
-                                                        <div className="flex items-center gap-3">
-                                                            <i className={`fas fa-chevron-${isCollapsed ? 'right' : 'down'} text-red-400 text-xs w-3 text-center`}></i>
-                                                            <h3 className="font-bold text-gray-900 dark:text-white text-sm">{rubric}</h3>
-                                                        </div>
-                                                        <span className="text-xs bg-red-100 dark:bg-red-900/50 text-red-600 dark:text-red-400 px-2 py-0.5 rounded-md">{logs.length} шт.</span>
+                                                                            onClick={(e) => { e.stopPropagation(); handleDeleteLog(log.id); }} 
+                                                                            className="absolute right-3 top-3 text-gray-400 dark:text-gray-600 hover:text-red-600 dark:hover:text-red-500 p-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all"
+                                                                            title="Удалить лог переноса"
+                                                                        >
+                                                                            <i className="fas fa-trash text-sm"></i>
+                                                                        </button>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        )}
                                                     </div>
-                                                    
-                                                    {!isCollapsed && (
-                                                        <div className="p-0">
-                                                            {logs.sort((a,b) => b.timestamp - a.timestamp).map((log, idx) => (
-                                                                <div key={log.timestamp + idx} className="p-4 sm:p-5 border-b border-gray-200 dark:border-[#27272a] last:border-0 flex flex-col gap-3 sm:gap-4 hover:bg-gray-100 dark:hover:bg-[#151518] transition-colors relative group">
-                                                                    <div className="flex flex-col md:flex-row justify-between md:items-center gap-2 pr-6">
-                                                                        <div className="font-medium text-[13px] sm:text-sm text-gray-800 dark:text-gray-200 line-through decoration-red-500/50">
-                                                                            <i className="fas fa-file-alt text-gray-400 dark:text-gray-600 mr-2"></i>{log.desc || 'Без описания'}
-                                                                        </div>
-                                                                        <div className="flex items-center gap-2 text-xs font-mono text-gray-500">
-                                                                            <i className="fas fa-calendar-times text-red-400"></i> {log.dateStr}
-                                                                        </div>
-                                                                    </div>
-                                                                    <div className="bg-red-50 dark:bg-red-500/10 border border-red-100 dark:border-red-500/20 text-red-700 dark:text-red-200 text-[13px] sm:text-sm p-3 rounded-xl italic">
-                                                                        "{log.reason}"
-                                                                    </div>
-                                                                    <div className="text-[10px] text-gray-400 dark:text-gray-500 flex justify-end items-center gap-3 pr-2">
-                                                                        <span><i className="fas fa-user mr-1 text-red-400"></i>{log.author}</span>
-                                                                        <span><i className="fas fa-clock mr-1"></i>{new Date(log.timestamp).toLocaleString("ru-RU")}</span>
-                                                                    </div>
-                                                                    
-                                                                    <button onClick={(e) => { e.stopPropagation(); handleDeleteDeleteLog(log.id); }} className="absolute right-3 top-3 text-gray-400 dark:text-gray-600 hover:text-red-600 dark:hover:text-red-500 p-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all" title="Удалить лог">
-                                                                        <i className="fas fa-trash text-sm"></i>
-                                                                    </button>
-                                                                </div>
-                                                            ))}
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-                                )}
-                                {/* КОНЕЦ ДОБАВЛЕННОГО БЛОКА */}
+                                                );
+                                            })}
+                                        </div>
+                                    )}
 
+                                    {/* АНАЛИТИКА УДАЛЕНИЙ */}
+                                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mt-8">
+                                        <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                                            <i className="fas fa-trash-alt text-red-500"></i> Удаленные посты за {monthNames[currentMonth]}
+                                        </h2>
+                                        <span className="text-xs bg-gray-100 dark:bg-[#222225] border border-gray-200 dark:border-[#3f3f46] text-gray-600 dark:text-gray-300 px-3 py-1.5 rounded-lg font-mono">Всего: {currentMonthDeleteLogs.length}</span>
+                                    </div>
+
+                                    {Object.keys(groupedDeleteLogs).length === 0 ? (
+                                        <div className="flex flex-col items-center justify-center flex-grow text-gray-400 dark:text-gray-500 gap-3 py-10">
+                                            <i className="fas fa-check-circle text-4xl opacity-20"></i>
+                                            <p className="text-sm">Удалений в этом месяце не было.</p>
+                                        </div>
+                                    ) : (
+                                        <div className="flex flex-col gap-4 overflow-y-auto">
+                                            {Object.entries(groupedDeleteLogs).map(([rubric, logs]) => {
+                                                const isCollapsed = collapsedDeleteLogs[rubric];
+                                                return (
+                                                    <div key={rubric} className="bg-gray-50 dark:bg-[#111113] border border-red-200 dark:border-red-900/30 rounded-2xl overflow-hidden transition-all shadow-sm dark:shadow-none">
+                                                        <div onClick={() => toggleDeleteLogSection(rubric)} className="bg-red-50/50 dark:bg-[#1f1515] px-5 py-4 border-b border-red-200/50 dark:border-red-900/30 flex justify-between items-center cursor-pointer hover:bg-red-100/50 dark:hover:bg-[#2a1a1a] transition-colors select-none">
+                                                            <div className="flex items-center gap-3">
+                                                                <i className={`fas fa-chevron-${isCollapsed ? 'right' : 'down'} text-red-400 text-xs w-3 text-center`}></i>
+                                                                <h3 className="font-bold text-gray-900 dark:text-white text-sm">{rubric}</h3>
+                                                            </div>
+                                                            <span className="text-xs bg-red-100 dark:bg-red-900/50 text-red-600 dark:text-red-400 px-2 py-0.5 rounded-md">{logs.length} шт.</span>
+                                                        </div>
+                                                        
+                                                        {!isCollapsed && (
+                                                            <div className="p-0">
+                                                                {logs.sort((a,b) => b.timestamp - a.timestamp).map((log, idx) => (
+                                                                    <div key={log.timestamp + idx} className="p-4 sm:p-5 border-b border-gray-200 dark:border-[#27272a] last:border-0 flex flex-col gap-3 sm:gap-4 hover:bg-gray-100 dark:hover:bg-[#151518] transition-colors relative group">
+                                                                        <div className="flex flex-col md:flex-row justify-between md:items-center gap-2 pr-6">
+                                                                            <div className="font-medium text-[13px] sm:text-sm text-gray-800 dark:text-gray-200 line-through decoration-red-500/50">
+                                                                                <i className="fas fa-file-alt text-gray-400 dark:text-gray-600 mr-2"></i>{log.desc || 'Без описания'}
+                                                                            </div>
+                                                                            <div className="flex items-center gap-2 text-xs font-mono text-gray-500">
+                                                                                <i className="fas fa-calendar-times text-red-400"></i> {log.dateStr}
+                                                                            </div>
+                                                                        </div>
+                                                                        <div className="bg-red-50 dark:bg-red-500/10 border border-red-100 dark:border-red-500/20 text-red-700 dark:text-red-200 text-[13px] sm:text-sm p-3 rounded-xl italic">
+                                                                            "{log.reason}"
+                                                                        </div>
+                                                                        <div className="text-[10px] text-gray-400 dark:text-gray-500 flex justify-end items-center gap-3 pr-2">
+                                                                            <span><i className="fas fa-user mr-1 text-red-400"></i>{log.author}</span>
+                                                                            <span><i className="fas fa-clock mr-1"></i>{new Date(log.timestamp).toLocaleString("ru-RU")}</span>
+                                                                        </div>
+                                                                        
+                                                                        <button onClick={(e) => { e.stopPropagation(); handleDeleteDeleteLog(log.id); }} className="absolute right-3 top-3 text-gray-400 dark:text-gray-600 hover:text-red-600 dark:hover:text-red-500 p-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all" title="Удалить лог">
+                                                                            <i className="fas fa-trash text-sm"></i>
+                                                                        </button>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    )}
+                                </div>
                             </div>
-                        </div>
-                    )}
+                        )}
 
 
                         {/* МОДАЛЬНЫЕ ОКНА */}
@@ -1306,7 +1314,8 @@ const filteredModalRubrics = availableBaseRubrics.filter(r =>
                                     <form onSubmit={handleConfirmReschedule} className="flex flex-col gap-4">
                                         <div>
                                             <label className="text-sm font-bold text-red-600 dark:text-red-400 mb-2 block">Обязательно укажите причину переноса:</label>
-<textarea name="reason" rows="3" required placeholder="" className="w-full bg-gray-50 dark:bg-[#222225] border border-gray-300 dark:border-[#3f3f46] rounded-xl p-4 text-gray-900 dark:text-white text-[15px] outline-none focus:border-red-500 transition-colors resize-none"></textarea>                                        </div>
+                                            <textarea name="reason" rows="3" required placeholder="Например: Изменился график / Не успели отснять" className="w-full bg-gray-50 dark:bg-[#222225] border border-gray-300 dark:border-[#3f3f46] rounded-xl p-4 text-gray-900 dark:text-white text-[15px] outline-none focus:border-red-500 transition-colors resize-none"></textarea>
+                                        </div>
                                         
                                         <div className="h-px w-full bg-gray-200 dark:bg-[#27272a] my-2"></div>
                                         
@@ -1374,10 +1383,10 @@ const filteredModalRubrics = availableBaseRubrics.filter(r =>
                                         </select>
                                         
                                         <select name="rubric" defaultValue={postModal.post?.rubric || ""} required className="w-full h-[48px] bg-gray-50 dark:bg-[#222225] border border-gray-300 dark:border-[#3f3f46] rounded-[12px] px-4 text-gray-900 dark:text-white text-[15px] outline-none focus:border-blue-500 transition-colors appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2212%22%20height%3D%2212%22%20fill%3D%22%23a1a1aa%22%20viewBox%3D%220%200%2016%2016%22%3E%3Cpath%20d%3D%22M8%2011L3%206h10l-5%205z%22%2F%3E%3C%2Fsvg%3E')] bg-[position:right_16px_center] bg-no-repeat cursor-pointer text-left m-0 box-border">
-    <option value="" disabled hidden>Выбрать рубрику</option>
-    {currentMonthRubrics.length === 0 && <option value="" disabled>Сначала добавьте рубрики в месяц</option>}
-    {currentMonthRubrics.map(r => <option key={r.id} value={r.name}>{r.name}</option>)}
-</select>
+                                            <option value="" disabled hidden>Выбрать рубрику</option>
+                                            {currentMonthRubrics.length === 0 && <option value="" disabled>Сначала добавьте рубрики в месяц</option>}
+                                            {currentMonthRubrics.map(r => <option key={r.id} value={r.name}>{r.name}</option>)}
+                                        </select>
                                         
                                         <div className="h-px w-full bg-gray-200 dark:bg-[#27272a] my-2"></div>
 
@@ -1400,7 +1409,7 @@ const filteredModalRubrics = availableBaseRubrics.filter(r =>
                         {rubricModalOpen && (
                             <div className="fixed inset-0 bg-black/50 dark:bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
                                 <div className="bg-white dark:bg-[#18181b] border border-gray-200 dark:border-[#27272a] rounded-3xl p-6 sm:p-8 w-full max-w-[500px] shadow-2xl relative" onClick={(e) => e.stopPropagation()}>
-                                    <button onClick={() => setRubricModalOpen(false)} className="absolute top-5 right-5 text-gray-400 dark:text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors">
+                                    <button type="button" onClick={() => { setRubricModalOpen(false); setRubricSearchQuery(''); setIsRubricDropdownOpen(false); }} className="absolute top-5 right-5 text-gray-400 dark:text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors z-20">
                                         <i className="fas fa-times text-xl"></i>
                                     </button>
                                     
@@ -1408,35 +1417,55 @@ const filteredModalRubrics = availableBaseRubrics.filter(r =>
                                     
                                     <form onSubmit={handleAddRubricToMonth} className="flex flex-col gap-4">
                                         <div>
-                                            {/* ПОЛЕ ПОИСКА РУБРИК */}
-                                            <input 
-                                                type="text" 
-                                                placeholder="🔍 Поиск рубрики по названию..." 
-                                                value={rubricSearchQuery} 
-                                                onChange={(e) => setRubricSearchQuery(e.target.value)} 
-                                                className="w-full h-[44px] bg-gray-50 dark:bg-[#222225] border border-gray-300 dark:border-[#3f3f46] rounded-[12px] px-4 text-gray-900 dark:text-white text-[14px] outline-none focus:border-blue-500 transition-colors mb-3"
-                                            />
-
-                                            <select name="name" required defaultValue="" className="w-full h-[48px] bg-gray-50 dark:bg-[#222225] border border-gray-300 dark:border-[#3f3f46] rounded-[12px] px-4 text-gray-900 dark:text-white text-[15px] appearance-none outline-none focus:border-blue-500 transition-colors bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2212%22%20height%3D%2212%22%20fill%3D%22%23a1a1aa%22%20viewBox%3D%220%200%2016%2016%22%3E%3Cpath%20d%3D%22M8%2011L3%206h10l-5%205z%22%2F%3E%3C%2Fsvg%3E')] bg-[position:right_16px_center] bg-no-repeat cursor-pointer text-left m-0 box-border">
-                                                <option value="" disabled hidden>Выбрать рубрику</option>
-                                                {filteredModalRubrics.length === 0 ? (
-                                                    <option value="" disabled>Ничего не найдено</option>
-                                                ) : (
-                                                    filteredModalRubrics.map(r => <option key={r.id} value={r.name}>{r.name}</option>)
+                                            <div className="relative">
+                                                <input 
+                                                    type="text" 
+                                                    name="name" 
+                                                    placeholder="🔍 Начните вводить название рубрики..." 
+                                                    value={rubricSearchQuery} 
+                                                    autoComplete="off"
+                                                    onChange={(e) => {
+                                                        setRubricSearchQuery(e.target.value);
+                                                        setIsRubricDropdownOpen(true);
+                                                    }} 
+                                                    onFocus={() => setIsRubricDropdownOpen(true)}
+                                                    onBlur={() => setTimeout(() => setIsRubricDropdownOpen(false), 200)}
+                                                    className="w-full h-[48px] bg-gray-50 dark:bg-[#222225] border border-gray-300 dark:border-[#3f3f46] rounded-[12px] px-4 text-gray-900 dark:text-white text-[15px] outline-none focus:border-blue-500 transition-colors shadow-sm"
+                                                />
+                                                
+                                                {isRubricDropdownOpen && (
+                                                    <div className="absolute z-50 w-full mt-2 bg-white dark:bg-[#2a2a2e] border border-gray-200 dark:border-[#3f3f46] rounded-xl shadow-xl max-h-60 overflow-y-auto overflow-x-hidden">
+                                                        {filteredModalRubrics.length === 0 ? (
+                                                            <div className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">Ничего не найдено</div>
+                                                        ) : (
+                                                            filteredModalRubrics.map(r => (
+                                                                <div 
+                                                                    key={r.id} 
+                                                                    onClick={() => {
+                                                                        setRubricSearchQuery(r.name);
+                                                                        setIsRubricDropdownOpen(false);
+                                                                    }}
+                                                                    className="px-4 py-3 text-sm text-gray-900 dark:text-white cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-600/20 border-b border-gray-100 dark:border-gray-800 last:border-0 transition-colors"
+                                                                >
+                                                                    {r.name}
+                                                                </div>
+                                                            ))
+                                                        )}
+                                                    </div>
                                                 )}
-                                            </select>
-                                            <p className="text-[13px] text-gray-500 mt-2 font-medium">Найдено: {filteredModalRubrics.length} из {availableBaseRubrics.length}</p>
+                                            </div>
+                                            <p className="text-[13px] text-gray-500 mt-2 font-medium">Доступно: {filteredModalRubrics.length} из {availableBaseRubrics.length} уникальных рубрик</p>
                                         </div>
 
-                                        <input name="plan" type="number" min="1" placeholder="Указать количество постов на месяц" className="w-full h-[48px] bg-gray-50 dark:bg-[#222225] border border-gray-300 dark:border-[#3f3f46] rounded-[12px] px-4 text-gray-900 dark:text-white text-[15px] outline-none focus:border-blue-500 transition-colors text-left m-0 box-border" />
+                                        <input name="plan" type="number" min="1" placeholder="Указать количество постов на месяц" required className="w-full h-[48px] bg-gray-50 dark:bg-[#222225] border border-gray-300 dark:border-[#3f3f46] rounded-[12px] px-4 text-gray-900 dark:text-white text-[15px] outline-none focus:border-blue-500 transition-colors text-left m-0 box-border shadow-sm" />
 
                                         <div className="h-px w-full bg-gray-200 dark:bg-[#27272a] my-2"></div>
 
                                         <div className="flex justify-end gap-3">
-                                            <button type="button" onClick={() => { setRubricModalOpen(false); setRubricSearchQuery(''); }} className="px-5 py-3 font-semibold text-[15px] bg-gray-100 dark:bg-[#222225] hover:bg-gray-200 dark:hover:bg-[#2a2a2e] text-gray-700 dark:text-gray-300 rounded-xl transition-colors">
+                                            <button type="button" onClick={() => { setRubricModalOpen(false); setRubricSearchQuery(''); setIsRubricDropdownOpen(false); }} className="px-5 py-3 font-semibold text-[15px] bg-gray-100 dark:bg-[#222225] hover:bg-gray-200 dark:hover:bg-[#2a2a2e] text-gray-700 dark:text-gray-300 rounded-xl transition-colors">
                                                 Отмена
                                             </button>
-                                            <button type="submit" disabled={availableBaseRubrics.length === 0} className="px-5 py-3 font-semibold text-[15px] bg-blue-600 dark:bg-[#2f6aef] hover:bg-blue-700 dark:hover:bg-blue-500 text-white rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                                            <button type="submit" disabled={!isRubricValid} className="px-5 py-3 font-semibold text-[15px] bg-blue-600 dark:bg-[#2f6aef] hover:bg-blue-700 dark:hover:bg-blue-500 text-white rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-md">
                                                 Добавить в план
                                             </button>
                                         </div>
@@ -1444,37 +1473,38 @@ const filteredModalRubrics = availableBaseRubrics.filter(r =>
                                 </div>
                             </div>
                         )}
+
                         {deletePrompt.isOpen && (
-    <div className="fixed inset-0 bg-black/50 dark:bg-black/80 backdrop-blur-sm dark:backdrop-blur-md flex items-center justify-center z-[60] p-4">
-        <div className="bg-white dark:bg-[#18181b] border border-red-500/30 rounded-3xl p-6 sm:p-8 w-full max-w-[500px] shadow-2xl relative" onClick={(e) => e.stopPropagation()}>
-            <div className="w-12 h-12 bg-red-100 dark:bg-red-500/20 text-red-600 flex items-center justify-center rounded-2xl mb-4 text-xl border border-red-200 dark:border-red-500/30">
-                <i className="fas fa-trash-alt"></i>
-            </div>
-            <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mb-2">Удаление публикации</h2>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
-                Вы удаляете пост <strong className="text-gray-900 dark:text-white">"{deletePrompt.post?.desc}"</strong>. Так как пост был запланирован давно, необходимо указать причину.
-            </p>
-            
-            <form onSubmit={handleConfirmDelete} className="flex flex-col gap-4">
-                <div>
-                    <label className="text-sm font-bold text-red-600 dark:text-red-400 mb-2 block">Обязательно укажите причину удаления:</label>
-                    <textarea name="reason" rows="3" required placeholder="" className="w-full bg-gray-50 dark:bg-[#222225] border border-red-300 dark:border-red-500/50 rounded-xl p-4 text-gray-900 dark:text-white text-[15px] outline-none focus:border-red-500 transition-colors resize-none"></textarea>
-                </div>
-                
-                <div className="h-px w-full bg-gray-200 dark:bg-[#27272a] my-2"></div>
-                
-                <div className="flex justify-end gap-3">
-                    <button type="button" onClick={() => setDeletePrompt({ isOpen: false, post: null })} className="px-5 py-3 font-semibold text-[15px] bg-gray-100 dark:bg-[#222225] hover:bg-gray-200 text-gray-700 dark:text-gray-300 rounded-xl transition-colors">
-                        Отмена
-                    </button>
-                    <button type="submit" className="px-5 py-3 font-semibold text-[15px] bg-red-600 hover:bg-red-700 text-white rounded-xl transition-colors">
-                        Удалить навсегда
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-)}
+                            <div className="fixed inset-0 bg-black/50 dark:bg-black/80 backdrop-blur-sm dark:backdrop-blur-md flex items-center justify-center z-[60] p-4">
+                                <div className="bg-white dark:bg-[#18181b] border border-red-500/30 rounded-3xl p-6 sm:p-8 w-full max-w-[500px] shadow-2xl relative" onClick={(e) => e.stopPropagation()}>
+                                    <div className="w-12 h-12 bg-red-100 dark:bg-red-500/20 text-red-600 flex items-center justify-center rounded-2xl mb-4 text-xl border border-red-200 dark:border-red-500/30">
+                                        <i className="fas fa-trash-alt"></i>
+                                    </div>
+                                    <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mb-2">Удаление публикации</h2>
+                                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
+                                        Вы удаляете пост <strong className="text-gray-900 dark:text-white">"{deletePrompt.post?.desc}"</strong>. Так как пост был запланирован давно, необходимо указать причину.
+                                    </p>
+                                    
+                                    <form onSubmit={handleConfirmDelete} className="flex flex-col gap-4">
+                                        <div>
+                                            <label className="text-sm font-bold text-red-600 dark:text-red-400 mb-2 block">Обязательно укажите причину удаления:</label>
+                                            <textarea name="reason" rows="3" required placeholder="Например: Неактуально / Отбраковка товара" className="w-full bg-gray-50 dark:bg-[#222225] border border-red-300 dark:border-red-500/50 rounded-xl p-4 text-gray-900 dark:text-white text-[15px] outline-none focus:border-red-500 transition-colors resize-none"></textarea>
+                                        </div>
+                                        
+                                        <div className="h-px w-full bg-gray-200 dark:bg-[#27272a] my-2"></div>
+                                        
+                                        <div className="flex justify-end gap-3">
+                                            <button type="button" onClick={() => setDeletePrompt({ isOpen: false, post: null })} className="px-5 py-3 font-semibold text-[15px] bg-gray-100 dark:bg-[#222225] hover:bg-gray-200 text-gray-700 dark:text-gray-300 rounded-xl transition-colors">
+                                                Отмена
+                                            </button>
+                                            <button type="submit" className="px-5 py-3 font-semibold text-[15px] bg-red-600 hover:bg-red-700 text-white rounded-xl transition-colors">
+                                                Удалить навсегда
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
             );
