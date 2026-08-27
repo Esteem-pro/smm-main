@@ -401,41 +401,73 @@
                 if(confirm('Точно удалить эту площадку?')) db.ref(`shared_workspace/socials/${id}`).remove();
             };
 
-            const handleSavePost = (e) => {
-                e.preventDefault();
-                const formData = new FormData(e.target);
-                const dateVal = formData.get('date'); 
-                const [parsedYear, parsedMonth, parsedDay] = dateVal.split('-').map(Number);
+const handleSavePost = (e) => {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    const dateVal = formData.get('date');
+    const [parsedYear, parsedMonth, parsedDay] = dateVal.split('-').map(Number);
+    // Добавляем .trim(), чтобы случайный пробел в конце не сломал логику "одинакового названия"
+    const descVal = formData.get('desc').trim(); 
+    let statusVal = formData.get('status');
 
-                const newPost = {
-                    id: postModal.post?.id || db.ref().push().key,
-                    day: parsedDay, month: parsedMonth - 1, year: parsedYear,
-                    rubric: formData.get('rubric'), status: formData.get('status'),
-                    desc: formData.get('desc'), social: activeSocial,
-                    updatedAt: Date.now()
-                };
-                
-                const isDateChanged = postModal.post?.id && (postModal.post.day !== parsedDay || postModal.post.month !== parsedMonth - 1 || postModal.post.year !== parsedYear);
+    // --- НОВАЯ ЛОГИКА (Шаг 1): Наследование статуса ---
+    // Если мы сохраняем пост НЕ в Инстаграм, ищем пост с таким же названием там.
+    // Если находим — принудительно забираем его статус.
+    if (activeSocial !== 'Instagram') {
+        const instaPost = posts.find(p => p.social === 'Instagram' && p.desc.trim() === descVal);
+        if (instaPost) {
+            statusVal = instaPost.status;
+        }
+    }
 
-                if (isDateChanged) {
-                    const grace = Number(settings.gracePeriodMinutes);
-                    const timeSinceLastUpdate = postModal.post.updatedAt ? (Date.now() - postModal.post.updatedAt) / 60000 : Infinity;
+    const newPost = {
+        id: postModal.post?.id || db.ref().push().key,
+        day: parsedDay, month: parsedMonth - 1, year: parsedYear,
+        rubric: formData.get('rubric'), 
+        status: statusVal, // Используем проверенный статус
+        desc: descVal, 
+        social: activeSocial,
+        updatedAt: Date.now()
+    };
 
-                    if (settings.requireReason && timeSinceLastUpdate >= grace) {
-                        const oldDateStr = `${postModal.post.day} ${monthNames[postModal.post.month]} ${postModal.post.year}`;
-                        const newDateStr = `${parsedDay} ${monthNames[parsedMonth - 1]} ${parsedYear}`;
-                        
-                        setReschedulePrompt({ isOpen: true, post: newPost, oldDateStr, newDateStr });
-                        setPostModal({ isOpen: false, post: null });
-                    } else {
-                        db.ref(`shared_workspace/posts/${newPost.id}`).set(newPost);
-                        setPostModal({ isOpen: false, post: null });
-                    }
-                } else {
-                    db.ref(`shared_workspace/posts/${newPost.id}`).set(newPost);
-                    setPostModal({ isOpen: false, post: null });
+    const isDateChanged = postModal.post?.id && (postModal.post.day !== parsedDay || postModal.post.month !== parsedMonth - 1 || postModal.post.year !== parsedYear);
+
+    // --- НОВАЯ ЛОГИКА (Шаг 2): Рассылка статуса ---
+    // Если мы сейчас сохраняем именно Инстаграм, обновляем статусы во всех остальных соцсетях
+    const syncOtherNetworks = (savedPost) => {
+        if (savedPost.social === 'Instagram') {
+            posts.forEach(p => {
+                if (p.social !== 'Instagram' && p.desc.trim() === savedPost.desc && p.status !== savedPost.status) {
+                    db.ref(`shared_workspace/posts/${p.id}`).update({
+                        status: savedPost.status,
+                        updatedAt: Date.now()
+                    });
                 }
-            };
+            });
+        }
+    };
+
+    if (isDateChanged) {
+        const grace = Number(settings.gracePeriodMinutes);
+        const timeSinceLastUpdate = postModal.post.updatedAt ? (Date.now() - postModal.post.updatedAt) / 60000 : Infinity;
+
+        if (settings.requireReason && timeSinceLastUpdate >= grace) {
+            const oldDateStr = `${postModal.post.day} ${monthNames[postModal.post.month]} ${postModal.post.year}`;
+            const newDateStr = `${parsedDay} ${monthNames[parsedMonth - 1]} ${parsedYear}`;
+            
+            setReschedulePrompt({ isOpen: true, post: newPost, oldDateStr, newDateStr });
+            setPostModal({ isOpen: false, post: null });
+        } else {
+            db.ref(`shared_workspace/posts/${newPost.id}`).set(newPost);
+            syncOtherNetworks(newPost); // <-- Синхронизация статусов
+            setPostModal({ isOpen: false, post: null });
+        }
+    } else {
+        db.ref(`shared_workspace/posts/${newPost.id}`).set(newPost);
+        syncOtherNetworks(newPost); // <-- Синхронизация статусов
+        setPostModal({ isOpen: false, post: null });
+    }
+};
 
             const handleDeletePost = () => {
                 if(!postModal.post?.id) return;
@@ -454,31 +486,44 @@
                 }
             };
 
-            const handleConfirmReschedule = (e) => {
-                e.preventDefault();
-                const reason = new FormData(e.target).get('reason').trim();
-                
-                if (!reason) {
-                    alert('Пожалуйста, напишите причину переноса (пробелы не считаются).');
-                    return;
-                }
-                
-                db.ref(`shared_workspace/posts/${reschedulePrompt.post.id}`).set(reschedulePrompt.post);
-                
-                const logId = db.ref().push().key;
-                db.ref(`shared_workspace/rescheduleLogs/${logId}`).set({
-                    postId: reschedulePrompt.post.id,
-                    rubric: reschedulePrompt.post.rubric,
-                    desc: reschedulePrompt.post.desc,
-                    oldDate: reschedulePrompt.oldDateStr,
-                    newDate: reschedulePrompt.newDateStr,
-                    reason: reason,
-                    author: user.displayName || user.email,
-                    timestamp: Date.now()
+const handleConfirmReschedule = (e) => {
+    e.preventDefault();
+    const reason = new FormData(e.target).get('reason').trim();
+    
+    if (!reason) {
+        alert('Пожалуйста, напишите причину переноса (пробелы не считаются).');
+        return;
+    }
+    
+    db.ref(`shared_workspace/posts/${reschedulePrompt.post.id}`).set(reschedulePrompt.post);
+    
+    // --- НОВАЯ ЛОГИКА: Синхронизация при отложенном сохранении ---
+    if (reschedulePrompt.post.social === 'Instagram') {
+        posts.forEach(p => {
+            if (p.social !== 'Instagram' && p.desc.trim() === reschedulePrompt.post.desc && p.status !== reschedulePrompt.post.status) {
+                db.ref(`shared_workspace/posts/${p.id}`).update({
+                    status: reschedulePrompt.post.status,
+                    updatedAt: Date.now()
                 });
+            }
+        });
+    }
+    // --------------------------------------------------------------
+    
+    const logId = db.ref().push().key;
+    db.ref(`shared_workspace/rescheduleLogs/${logId}`).set({
+        postId: reschedulePrompt.post.id,
+        rubric: reschedulePrompt.post.rubric,
+        desc: reschedulePrompt.post.desc,
+        oldDate: reschedulePrompt.oldDateStr,
+        newDate: reschedulePrompt.newDateStr,
+        reason: reason,
+        author: user.displayName || user.email,
+        timestamp: Date.now()
+    });
 
-                setReschedulePrompt({ isOpen: false, post: null, oldDateStr: '', newDateStr: '' });
-            };
+    setReschedulePrompt({ isOpen: false, post: null, oldDateStr: '', newDateStr: '' });
+};
 
             const handleConfirmDelete = (e) => {
                 e.preventDefault();
