@@ -7,6 +7,7 @@
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     
@@ -402,73 +403,67 @@
                 if(confirm('Точно удалить эту площадку?')) db.ref(`shared_workspace/socials/${id}`).remove();
             };
 
-const handleSavePost = (e) => {
-    e.preventDefault();
-    const formData = new FormData(e.target);
-    const dateVal = formData.get('date');
-    const [parsedYear, parsedMonth, parsedDay] = dateVal.split('-').map(Number);
-    // Добавляем .trim(), чтобы случайный пробел в конце не сломал логику "одинакового названия"
-    const descVal = formData.get('desc').trim(); 
-    let statusVal = formData.get('status');
+            const handleSavePost = (e) => {
+                e.preventDefault();
+                const formData = new FormData(e.target);
+                const dateVal = formData.get('date');
+                const [parsedYear, parsedMonth, parsedDay] = dateVal.split('-').map(Number);
+                const descVal = formData.get('desc').trim(); 
+                let statusVal = formData.get('status');
 
-    // --- НОВАЯ ЛОГИКА (Шаг 1): Наследование статуса ---
-    // Если мы сохраняем пост НЕ в Инстаграм, ищем пост с таким же названием там.
-    // Если находим — принудительно забираем его статус.
-    if (activeSocial !== 'Instagram') {
-        const instaPost = posts.find(p => p.social === 'Instagram' && p.desc.trim() === descVal);
-        if (instaPost) {
-            statusVal = instaPost.status;
-        }
-    }
-
-    const newPost = {
-        id: postModal.post?.id || db.ref().push().key,
-        day: parsedDay, month: parsedMonth - 1, year: parsedYear,
-        rubric: formData.get('rubric'), 
-        status: statusVal, // Используем проверенный статус
-        desc: descVal, 
-        social: activeSocial,
-        updatedAt: Date.now()
-    };
-
-    const isDateChanged = postModal.post?.id && (postModal.post.day !== parsedDay || postModal.post.month !== parsedMonth - 1 || postModal.post.year !== parsedYear);
-
-    // --- НОВАЯ ЛОГИКА (Шаг 2): Рассылка статуса ---
-    // Если мы сейчас сохраняем именно Инстаграм, обновляем статусы во всех остальных соцсетях
-    const syncOtherNetworks = (savedPost) => {
-        if (savedPost.social === 'Instagram') {
-            posts.forEach(p => {
-                if (p.social !== 'Instagram' && p.desc.trim() === savedPost.desc && p.status !== savedPost.status) {
-                    db.ref(`shared_workspace/posts/${p.id}`).update({
-                        status: savedPost.status,
-                        updatedAt: Date.now()
-                    });
+                if (activeSocial !== 'Instagram') {
+                    const instaPost = posts.find(p => p.social === 'Instagram' && p.desc.trim() === descVal);
+                    if (instaPost) {
+                        statusVal = instaPost.status;
+                    }
                 }
-            });
-        }
-    };
 
-    if (isDateChanged) {
-        const grace = Number(settings.gracePeriodMinutes);
-        const timeSinceLastUpdate = postModal.post.updatedAt ? (Date.now() - postModal.post.updatedAt) / 60000 : Infinity;
+                const newPost = {
+                    id: postModal.post?.id || db.ref().push().key,
+                    day: parsedDay, month: parsedMonth - 1, year: parsedYear,
+                    rubric: formData.get('rubric'), 
+                    status: statusVal, 
+                    desc: descVal, 
+                    social: activeSocial,
+                    updatedAt: Date.now()
+                };
 
-        if (settings.requireReason && timeSinceLastUpdate >= grace) {
-            const oldDateStr = `${postModal.post.day} ${monthNames[postModal.post.month]} ${postModal.post.year}`;
-            const newDateStr = `${parsedDay} ${monthNames[parsedMonth - 1]} ${parsedYear}`;
-            
-            setReschedulePrompt({ isOpen: true, post: newPost, oldDateStr, newDateStr });
-            setPostModal({ isOpen: false, post: null });
-        } else {
-            db.ref(`shared_workspace/posts/${newPost.id}`).set(newPost);
-            syncOtherNetworks(newPost); // <-- Синхронизация статусов
-            setPostModal({ isOpen: false, post: null });
-        }
-    } else {
-        db.ref(`shared_workspace/posts/${newPost.id}`).set(newPost);
-        syncOtherNetworks(newPost); // <-- Синхронизация статусов
-        setPostModal({ isOpen: false, post: null });
-    }
-};
+                const isDateChanged = postModal.post?.id && (postModal.post.day !== parsedDay || postModal.post.month !== parsedMonth - 1 || postModal.post.year !== parsedYear);
+
+                const syncOtherNetworks = (savedPost) => {
+                    if (savedPost.social === 'Instagram') {
+                        posts.forEach(p => {
+                            if (p.social !== 'Instagram' && p.desc.trim() === savedPost.desc && p.status !== savedPost.status) {
+                                db.ref(`shared_workspace/posts/${p.id}`).update({
+                                    status: savedPost.status,
+                                    updatedAt: Date.now()
+                                });
+                            }
+                        });
+                    }
+                };
+
+                if (isDateChanged) {
+                    const grace = Number(settings.gracePeriodMinutes);
+                    const timeSinceLastUpdate = postModal.post.updatedAt ? (Date.now() - postModal.post.updatedAt) / 60000 : Infinity;
+
+                    if (settings.requireReason && timeSinceLastUpdate >= grace) {
+                        const oldDateStr = `${postModal.post.day} ${monthNames[postModal.post.month]} ${postModal.post.year}`;
+                        const newDateStr = `${parsedDay} ${monthNames[parsedMonth - 1]} ${parsedYear}`;
+                        
+                        setReschedulePrompt({ isOpen: true, post: newPost, oldDateStr, newDateStr });
+                        setPostModal({ isOpen: false, post: null });
+                    } else {
+                        db.ref(`shared_workspace/posts/${newPost.id}`).set(newPost);
+                        syncOtherNetworks(newPost); 
+                        setPostModal({ isOpen: false, post: null });
+                    }
+                } else {
+                    db.ref(`shared_workspace/posts/${newPost.id}`).set(newPost);
+                    syncOtherNetworks(newPost); 
+                    setPostModal({ isOpen: false, post: null });
+                }
+            };
 
             const handleDeletePost = () => {
                 if(!postModal.post?.id) return;
@@ -486,6 +481,7 @@ const handleSavePost = (e) => {
                     }
                 }
             };
+            
             // Управление выбором чекбоксов
             const handleToggleDupeSocial = (socName) => {
                 setSelectedDupeSocials(prev => 
@@ -519,45 +515,43 @@ const handleSavePost = (e) => {
                 setSelectedDupeSocials([]);
             };
 
-const handleConfirmReschedule = (e) => {
-    e.preventDefault();
-    const reason = new FormData(e.target).get('reason').trim();
-    
-    if (!reason) {
-        alert('Пожалуйста, напишите причину переноса (пробелы не считаются).');
-        return;
-    }
-    
-    db.ref(`shared_workspace/posts/${reschedulePrompt.post.id}`).set(reschedulePrompt.post);
-    
-    // --- НОВАЯ ЛОГИКА: Синхронизация при отложенном сохранении ---
-    if (reschedulePrompt.post.social === 'Instagram') {
-        posts.forEach(p => {
-            if (p.social !== 'Instagram' && p.desc.trim() === reschedulePrompt.post.desc && p.status !== reschedulePrompt.post.status) {
-                db.ref(`shared_workspace/posts/${p.id}`).update({
-                    status: reschedulePrompt.post.status,
-                    updatedAt: Date.now()
+            const handleConfirmReschedule = (e) => {
+                e.preventDefault();
+                const reason = new FormData(e.target).get('reason').trim();
+                
+                if (!reason) {
+                    alert('Пожалуйста, напишите причину переноса (пробелы не считаются).');
+                    return;
+                }
+                
+                db.ref(`shared_workspace/posts/${reschedulePrompt.post.id}`).set(reschedulePrompt.post);
+                
+                if (reschedulePrompt.post.social === 'Instagram') {
+                    posts.forEach(p => {
+                        if (p.social !== 'Instagram' && p.desc.trim() === reschedulePrompt.post.desc && p.status !== reschedulePrompt.post.status) {
+                            db.ref(`shared_workspace/posts/${p.id}`).update({
+                                status: reschedulePrompt.post.status,
+                                updatedAt: Date.now()
+                            });
+                        }
+                    });
+                }
+                
+                const logId = db.ref().push().key;
+                db.ref(`shared_workspace/rescheduleLogs/${logId}`).set({
+                    postId: reschedulePrompt.post.id,
+                    rubric: reschedulePrompt.post.rubric,
+                    desc: reschedulePrompt.post.desc,
+                    oldDate: reschedulePrompt.oldDateStr,
+                    newDate: reschedulePrompt.newDateStr,
+                    reason: reason,
+                    author: user.displayName || user.email,
+                    timestamp: Date.now(),
+                    social: reschedulePrompt.post.social
                 });
-            }
-        });
-    }
-    // --------------------------------------------------------------
-    
-    const logId = db.ref().push().key;
-    db.ref(`shared_workspace/rescheduleLogs/${logId}`).set({
-        postId: reschedulePrompt.post.id,
-        rubric: reschedulePrompt.post.rubric,
-        desc: reschedulePrompt.post.desc,
-        oldDate: reschedulePrompt.oldDateStr,
-        newDate: reschedulePrompt.newDateStr,
-        reason: reason,
-        author: user.displayName || user.email,
-        timestamp: Date.now(),
-        social: reschedulePrompt.post.social
-    });
 
-    setReschedulePrompt({ isOpen: false, post: null, oldDateStr: '', newDateStr: '' });
-};
+                setReschedulePrompt({ isOpen: false, post: null, oldDateStr: '', newDateStr: '' });
+            };
 
             const handleConfirmDelete = (e) => {
                 e.preventDefault();
@@ -626,7 +620,7 @@ const handleConfirmReschedule = (e) => {
             const handleAddRubricToMonth = (e) => {
                 e.preventDefault();
                 const formData = new FormData(e.target);
-                const selectedName = formData.get('name'); // Берется из нашего кастомного инпута
+                const selectedName = formData.get('name');
                 if(!selectedName) return;
                 
                 const key = db.ref().push().key;
@@ -723,7 +717,7 @@ const handleConfirmReschedule = (e) => {
                             </div>
                             <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Нет доступа</h1>
                             <p className="text-gray-500 dark:text-gray-400 text-sm mb-8">
-                                Аккаунт <b>{user.email}</b> не состоит в белом списке маркетинговой команды. Обратитесь к администратору.
+                                Аккаунт <b>{user.email}</b> не состоит в белом списке маркетин команды. Обратитесь к администратору.
                             </p>
                             <button onClick={logout} className="w-full bg-gray-100 dark:bg-[#222] text-gray-900 dark:text-white font-bold py-3 px-4 rounded-xl hover:bg-gray-200 dark:hover:bg-[#333] transition-colors">
                                 Выйти и сменить аккаунт
@@ -760,7 +754,6 @@ const handleConfirmReschedule = (e) => {
                 return { ...r, fact };
             });
 
-            // Подготовка данных для умного поиска
             const availableBaseRubrics = rubricsBase.filter(baseObj => 
                 baseObj.status !== 'archived' && !currentMonthRubrics.some(r => r.name === baseObj.name)
             );
@@ -770,7 +763,6 @@ const handleConfirmReschedule = (e) => {
             );
 
             const isRubricValid = availableBaseRubrics.some(r => r.name === rubricSearchQuery);
-            // Фильтрация рубрик текущего месяца для окна создания публикации
             const filteredPostRubrics = currentMonthRubrics.filter(r => 
                 r.name.toLowerCase().includes(postRubricSearchQuery.toLowerCase())
             );
@@ -910,17 +902,17 @@ const handleConfirmReschedule = (e) => {
                                 )}
                                 
                                 <div className="hidden sm:flex items-center gap-5 lg:gap-6">
-        <button onClick={() => setIsDark(!isDark)} className="w-10 h-10 flex justify-center items-center rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors bg-gray-50 dark:bg-[#111] border border-gray-200 dark:border-gray-800 shadow-sm dark:shadow-none">
-            {isDark ? <i className="fas fa-sun text-yellow-500 text-[15px]"></i> : <i className="fas fa-moon text-blue-500 text-[15px]"></i>}
-        </button>
-        
-        {/* Компактный профиль только с аватаркой и выходом */}
-        <div className="flex items-center gap-3 bg-gray-100 dark:bg-[#222] p-1.5 pr-4 rounded-full border border-gray-200 dark:border-gray-700 group cursor-pointer shrink-0 transition-all hover:border-red-500/30 dark:hover:border-red-500/30" onClick={logout} title="Выйти">
-            <img src={user.photoURL} alt="Avatar" className="w-8 h-8 rounded-full shadow-sm" />
-            <i className="fas fa-sign-out-alt text-gray-400 dark:text-gray-500 group-hover:text-red-500 dark:group-hover:text-red-400 transition-colors text-base"></i>
-        </div>
-    </div>
-</div>
+                                    <button onClick={() => setIsDark(!isDark)} className="w-10 h-10 flex justify-center items-center rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors bg-gray-50 dark:bg-[#111] border border-gray-200 dark:border-gray-800 shadow-sm dark:shadow-none">
+                                        {isDark ? <i className="fas fa-sun text-yellow-500 text-[15px]"></i> : <i className="fas fa-moon text-blue-500 text-[15px]"></i>}
+                                    </button>
+                                    
+                                    {/* Компактный профиль только с аватаркой и выходом */}
+                                    <div className="flex items-center gap-3 bg-gray-100 dark:bg-[#222] p-1.5 pr-4 rounded-full border border-gray-200 dark:border-gray-700 group cursor-pointer shrink-0 transition-all hover:border-red-500/30 dark:hover:border-red-500/30" onClick={logout} title="Выйти">
+                                        <img src={user.photoURL} alt="Avatar" className="w-8 h-8 rounded-full shadow-sm" />
+                                        <i className="fas fa-sign-out-alt text-gray-400 dark:text-gray-500 group-hover:text-red-500 dark:group-hover:text-red-400 transition-colors text-base"></i>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
                         {/* ВКЛАДКА: КАЛЕНДАРЬ */}
@@ -984,18 +976,18 @@ const handleConfirmReschedule = (e) => {
                                                                 onDrop={(e) => handleDrop(e, day)}
                                                                 onClick={(e) => {
                                                                     if (window.innerWidth <= 1024 && currentMonthRubrics.length > 0) {
-    setPostModal({ isOpen: true, post: { day, rubric: '', status: 'plan', desc: '' } });
-}
+                                                                        setPostModal({ isOpen: true, post: { day, rubric: '', status: 'plan', desc: '' } });
+                                                                    }
                                                                 }}
                                                                 className={`rounded-xl sm:rounded-2xl min-h-[100px] sm:min-h-[120px] p-2 flex flex-col gap-1.5 relative border-2 transition-colors group shadow-sm dark:shadow-none ${dragOverDay === day ? 'bg-blue-50 dark:bg-[#2a2a2e] border-blue-500' : 'bg-white dark:bg-cell border-gray-300 dark:border-[#2a2a2e] md:hover:border-gray-400 md:dark:hover:border-gray-500'}`}
                                                             >
                                                                 <span className="font-bold text-sm absolute top-2 right-2 text-gray-500 dark:text-gray-400 group-hover:text-gray-700 dark:group-hover:text-gray-300 transition-colors pointer-events-none">{day}</span>
                                                                 
                                                                 {currentMonthRubrics.length > 0 && (
-    <button onClick={(e) => { e.stopPropagation(); setPostModal({ isOpen: true, post: { day, rubric: '', status: 'plan', desc: '' } }); }} className="hidden md:block absolute top-2 left-2 text-gray-400 dark:text-gray-600 hover:text-gray-900 dark:hover:text-white opacity-0 group-hover:opacity-100 transition-opacity z-20">
-        <i className="fas fa-plus"></i>
-    </button>
-)}
+                                                                    <button onClick={(e) => { e.stopPropagation(); setPostModal({ isOpen: true, post: { day, rubric: '', status: 'plan', desc: '' } }); }} className="hidden md:block absolute top-2 left-2 text-gray-400 dark:text-gray-600 hover:text-gray-900 dark:hover:text-white opacity-0 group-hover:opacity-100 transition-opacity z-20">
+                                                                        <i className="fas fa-plus"></i>
+                                                                    </button>
+                                                                )}
 
                                                                 <div className="mt-6 flex flex-col gap-1.5 z-10">
                                                                     {dayPosts.map(p => {
@@ -1398,7 +1390,6 @@ const handleConfirmReschedule = (e) => {
                             </div>
                         )}
 
-
                         {/* МОДАЛЬНЫЕ ОКНА */}
 
                         {reschedulePrompt.isOpen && (
@@ -1436,7 +1427,7 @@ const handleConfirmReschedule = (e) => {
                                 </div>
                             </div>
                         )}
-
+                        
                         {copyPlanModalOpen && (
                             <div className="fixed inset-0 bg-black/50 dark:bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
                                 <div className="bg-white dark:bg-[#18181b] border border-gray-200 dark:border-[#27272a] rounded-3xl p-6 sm:p-8 w-full max-w-[500px] shadow-2xl relative" onClick={(e) => e.stopPropagation()}>
