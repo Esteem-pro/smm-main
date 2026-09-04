@@ -1436,7 +1436,7 @@ const handleConfirmReschedule = (e) => {
                                 </div>
                             </div>
                         )}
-                        
+
                         {copyPlanModalOpen && (
                             <div className="fixed inset-0 bg-black/50 dark:bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
                                 <div className="bg-white dark:bg-[#18181b] border border-gray-200 dark:border-[#27272a] rounded-3xl p-6 sm:p-8 w-full max-w-[500px] shadow-2xl relative" onClick={(e) => e.stopPropagation()}>
@@ -1466,25 +1466,25 @@ const handleConfirmReschedule = (e) => {
                             </div>
                         )}
 
-{postModal.isOpen && (
+                        {postModal.isOpen && (
                             <div className="fixed inset-0 bg-black/50 dark:bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
                                 <div className="bg-white dark:bg-[#18181b] border border-gray-200 dark:border-[#27272a] rounded-3xl p-6 sm:p-8 w-full max-w-[500px] shadow-2xl relative" onClick={(e) => e.stopPropagation()}>
                                     
                                     {/* Кнопки в правом верхнем углу (Закрыть и Дублировать) */}
                                     <div className="absolute top-5 right-5 flex items-center gap-4">
                                         {postModal.post?.id && (
-<button 
-    type="button" 
-    onClick={() => {
-        setDuplicateModal({ isOpen: true, post: postModal.post });
-        setSelectedDupeSocials([]);
-        setPostModal({ isOpen: false, post: null }); 
-    }} 
-    className="text-gray-400 dark:text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 transition-colors" 
-    title="Дублировать"
->
-    <i className="fas fa-copy text-xl"></i>
-</button>
+                                            <button 
+                                                type="button" 
+                                                onClick={() => {
+                                                    setDuplicateModal({ isOpen: true, post: postModal.post });
+                                                    setSelectedDupeSocials([]); // Галочки сняты по умолчанию
+                                                    setPostModal({ isOpen: false, post: null }); // Закрываем основное окно
+                                                }} 
+                                                className="text-gray-400 dark:text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 transition-colors" 
+                                                title="Дублировать"
+                                            >
+                                                <i className="fas fa-copy text-xl"></i>
+                                            </button>
                                         )}
                                         <button onClick={() => setPostModal({ isOpen: false, post: null })} className="text-gray-400 dark:text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors">
                                             <i className="fas fa-times text-xl"></i>
