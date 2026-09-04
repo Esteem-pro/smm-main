@@ -528,8 +528,8 @@ const handleConfirmReschedule = (e) => {
         newDate: reschedulePrompt.newDateStr,
         reason: reason,
         author: user.displayName || user.email,
-        timestamp: Date.now()
-        handleConfirmReschedule
+        timestamp: Date.now(),
+        social: reschedulePrompt.post.social
     });
 
     setReschedulePrompt({ isOpen: false, post: null, oldDateStr: '', newDateStr: '' });
@@ -556,7 +556,7 @@ const handleConfirmReschedule = (e) => {
                     dateStr: dateStr,
                     reason: reason,
                     author: user.displayName || user.email,
-                    timestamp: Date.now()
+                    timestamp: Date.now(),
                     social: deletePrompt.post.social
                 });
 
