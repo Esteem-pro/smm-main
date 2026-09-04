@@ -509,7 +509,7 @@ const handleSavePost = (e) => {
                         ...duplicateModal.post,
                         id: newId,
                         social: soc,
-                        desc: duplicateModal.post.desc + ' (копия)',
+                        desc: duplicateModal.post.desc,
                         updatedAt: Date.now()
                     };
                     updates[`posts/${newId}`] = newPost;
