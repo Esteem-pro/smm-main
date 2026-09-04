@@ -1467,34 +1467,36 @@ const handleConfirmReschedule = (e) => {
                             </div>
                         )}
 
-                        {postModal.isOpen && (
+{postModal.isOpen && (
                             <div className="fixed inset-0 bg-black/50 dark:bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
                                 <div className="bg-white dark:bg-[#18181b] border border-gray-200 dark:border-[#27272a] rounded-3xl p-6 sm:p-8 w-full max-w-[500px] shadow-2xl relative" onClick={(e) => e.stopPropagation()}>
-    <div className="absolute top-5 right-5 flex items-center gap-4">
-        {postModal.post?.id && (
-            <button 
-                type="button" 
-                onClick={() => {
-                    setDuplicateModal({ isOpen: true, post: postModal.post });
-                    setSelectedDupeSocials([activeSocial]); // Автоматически выделяем текущую площадку
-                    setPostModal({ isOpen: false, post: null }); // Закрываем основное окно
-                }} 
-                className="text-gray-400 dark:text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 transition-colors" 
-                title="Дублировать"
-            >
-                <i className="fas fa-copy text-xl"></i>
-            </button>
-        )}
-        <button onClick={() => setPostModal({ isOpen: false, post: null })} className="text-gray-400 dark:text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors">
-            <i className="fas fa-times text-xl"></i>
-        </button>
-    </div>
-    <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mb-6 pr-16">
-        {postModal.post?.id ? 'Редактировать публикацию' : 'Создать публикацию'}
-    </h2>
+                                    
+                                    {/* Кнопки в правом верхнем углу (Закрыть и Дублировать) */}
+                                    <div className="absolute top-5 right-5 flex items-center gap-4">
+                                        {postModal.post?.id && (
+                                            <button 
+                                                type="button" 
+                                                onClick={() => {
+                                                    setDuplicateModal({ isOpen: true, post: postModal.post });
+                                                    setSelectedDupeSocials([activeSocial]); // Автоматически выделяем текущую площадку
+                                                    setPostModal({ isOpen: false, post: null }); // Закрываем основное окно
+                                                }} 
+                                                className="text-gray-400 dark:text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 transition-colors" 
+                                                title="Дублировать"
+                                            >
+                                                <i className="fas fa-copy text-xl"></i>
+                                            </button>
+                                        )}
+                                        <button onClick={() => setPostModal({ isOpen: false, post: null })} className="text-gray-400 dark:text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors">
+                                            <i className="fas fa-times text-xl"></i>
+                                        </button>
+                                    </div>
+
+                                    <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mb-6 pr-16">
+                                        {postModal.post?.id ? 'Редактировать публикацию' : 'Создать публикацию'}
+                                    </h2>
                                     
                                     <form onSubmit={handleSavePost} className="flex flex-col gap-4">
-                                        
                                         <input name="desc" autoComplete="off" defaultValue={postModal.post?.desc} required placeholder="Тема / Описание" className="w-full h-[48px] bg-gray-50 dark:bg-[#222225] border border-gray-300 dark:border-[#3f3f46] rounded-[12px] px-4 text-gray-900 dark:text-white text-[15px] outline-none focus:border-blue-500 transition-colors appearance-none text-left m-0 box-border" />
                                         
                                         <input name="date" type="date" defaultValue={defaultDateStr} required style={{ colorScheme: isDark ? 'dark' : 'light' }} className="w-full h-[48px] flex items-center justify-start bg-gray-50 dark:bg-[#222225] border border-gray-300 dark:border-[#3f3f46] rounded-[12px] px-4 text-gray-900 dark:text-white text-[15px] outline-none focus:border-blue-500 transition-colors appearance-none text-left m-0 box-border" />
@@ -1506,7 +1508,6 @@ const handleConfirmReschedule = (e) => {
                                             <option value="pub">Опубликовано</option>
                                         </select>
                                         
-                                        {/* ПОЛЕ ПОИСКА РУБРИКИ ДЛЯ ПОСТА */}
                                         <div className="relative z-10">
                                             <input 
                                                 type="text" 
@@ -1550,18 +1551,11 @@ const handleConfirmReschedule = (e) => {
                                         
                                         <div className="h-px w-full bg-gray-200 dark:bg-[#27272a] my-2"></div>
 
-                                        <div className="flex justify-between items-center">
-    <div className="flex justify-between items-center mt-6">
-    {postModal.post?.id ? <button type="button" onClick={handleDeletePost} className="text-[15px] font-medium text-red-600 dark:text-red-500 hover:text-red-700 dark:hover:text-red-400">Удалить</button> : <div></div>}
-    <div className="flex gap-3">
-        <button type="button" onClick={() => setPostModal({isOpen: false, post: null})} className="px-5 py-3 font-semibold text-[15px] bg-gray-100 dark:bg-[#222225] hover:bg-gray-200 dark:hover:bg-[#2a2a2e] text-gray-700 dark:text-gray-300 rounded-xl transition-colors">
-            Отмена
-        </button>
-        <button type="submit" disabled={currentMonthRubrics.length === 0 || !isPostRubricValid} className="px-5 py-3 font-semibold text-[15px] bg-blue-600 dark:bg-[#2f6aef] hover:bg-blue-700 dark:hover:bg-blue-500 text-white rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-md">
-            Сохранить
-        </button>
-    </div>
-</div>
+                                        <div className="flex justify-between items-center mt-2">
+                                            {postModal.post?.id ? (
+                                                <button type="button" onClick={handleDeletePost} className="text-[15px] font-medium text-red-600 dark:text-red-500 hover:text-red-700 dark:hover:text-red-400">Удалить</button>
+                                            ) : <div></div>}
+                                            <div className="flex gap-3">
                                                 <button type="button" onClick={() => setPostModal({isOpen: false, post: null})} className="px-5 py-3 font-semibold text-[15px] bg-gray-100 dark:bg-[#222225] hover:bg-gray-200 dark:hover:bg-[#2a2a2e] text-gray-700 dark:text-gray-300 rounded-xl transition-colors">
                                                     Отмена
                                                 </button>
@@ -1572,7 +1566,11 @@ const handleConfirmReschedule = (e) => {
                                         </div>
                                     </form>
                                 </div>
-                    {duplicateModal.isOpen && (
+                            </div>
+                        )}
+
+                        {/* НОВОЕ ОКНО: Выбор соцсетей для дублирования */}
+                        {duplicateModal.isOpen && (
                             <div className="fixed inset-0 bg-black/50 dark:bg-black/70 backdrop-blur-sm flex items-center justify-center z-[70] p-4">
                                 <div className="bg-white dark:bg-[#18181b] border border-gray-200 dark:border-[#27272a] rounded-3xl p-6 sm:p-8 w-full max-w-[400px] shadow-2xl relative" onClick={(e) => e.stopPropagation()}>
                                     <button onClick={() => setDuplicateModal({ isOpen: false, post: null })} className="absolute top-5 right-5 text-gray-400 dark:text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors">
@@ -1609,8 +1607,6 @@ const handleConfirmReschedule = (e) => {
                                         </div>
                                     </form>
                                 </div>
-                            </div>
-                        )}
                             </div>
                         )}
 
