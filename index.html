@@ -257,6 +257,8 @@
             // Состояния для поиска рубрики внутри поста
             const [postRubricSearchQuery, setPostRubricSearchQuery] = useState('');
             const [isPostRubricDropdownOpen, setIsPostRubricDropdownOpen] = useState(false);
+            const [duplicateModal, setDuplicateModal] = useState({ isOpen: false, post: null });
+            const [selectedDupeSocials, setSelectedDupeSocials] = useState([]);
 
             useEffect(() => {
                 // При открытии окна подставляем рубрику поста (если редактируем) или очищаем
@@ -485,14 +487,37 @@ const handleSavePost = (e) => {
                     }
                 }
             };
-            const handleDuplicatePost = () => {
-                if (!postModal.post) return;
-                const duplicatedPost = { 
-                    ...postModal.post, 
-                    id: null, 
-                    desc: postModal.post.desc + ' (копия)' 
-                };
-                setPostModal({ isOpen: true, post: duplicatedPost });
+            // Управление выбором чекбоксов
+            const handleToggleDupeSocial = (socName) => {
+                setSelectedDupeSocials(prev => 
+                    prev.includes(socName) ? prev.filter(n => n !== socName) : [...prev, socName]
+                );
+            };
+
+            // Сохранение дубликатов в базу
+            const handleConfirmDuplicate = (e) => {
+                e.preventDefault();
+                if (selectedDupeSocials.length === 0) {
+                    alert('Выберите хотя бы одну площадку');
+                    return;
+                }
+
+                const updates = {};
+                selectedDupeSocials.forEach(soc => {
+                    const newId = db.ref().push().key;
+                    const newPost = {
+                        ...duplicateModal.post,
+                        id: newId,
+                        social: soc,
+                        desc: duplicateModal.post.desc + ' (копия)',
+                        updatedAt: Date.now()
+                    };
+                    updates[`posts/${newId}`] = newPost;
+                });
+
+                db.ref('shared_workspace').update(updates);
+                setDuplicateModal({ isOpen: false, post: null });
+                setSelectedDupeSocials([]);
             };
 
 const handleConfirmReschedule = (e) => {
@@ -1445,10 +1470,28 @@ const handleConfirmReschedule = (e) => {
                         {postModal.isOpen && (
                             <div className="fixed inset-0 bg-black/50 dark:bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
                                 <div className="bg-white dark:bg-[#18181b] border border-gray-200 dark:border-[#27272a] rounded-3xl p-6 sm:p-8 w-full max-w-[500px] shadow-2xl relative" onClick={(e) => e.stopPropagation()}>
-                                    <button onClick={() => setPostModal({ isOpen: false, post: null })} className="absolute top-5 right-5 text-gray-400 dark:text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors">
-                                        <i className="fas fa-times text-xl"></i>
-                                    </button>
-                                    <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mb-6">{postModal.post?.id ? 'Редактировать публикацию' : 'Создать публикацию'}</h2>
+    <div className="absolute top-5 right-5 flex items-center gap-4">
+        {postModal.post?.id && (
+            <button 
+                type="button" 
+                onClick={() => {
+                    setDuplicateModal({ isOpen: true, post: postModal.post });
+                    setSelectedDupeSocials([activeSocial]); // Автоматически выделяем текущую площадку
+                    setPostModal({ isOpen: false, post: null }); // Закрываем основное окно
+                }} 
+                className="text-gray-400 dark:text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 transition-colors" 
+                title="Дублировать"
+            >
+                <i className="fas fa-copy text-xl"></i>
+            </button>
+        )}
+        <button onClick={() => setPostModal({ isOpen: false, post: null })} className="text-gray-400 dark:text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors">
+            <i className="fas fa-times text-xl"></i>
+        </button>
+    </div>
+    <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mb-6 pr-16">
+        {postModal.post?.id ? 'Редактировать публикацию' : 'Создать публикацию'}
+    </h2>
                                     
                                     <form onSubmit={handleSavePost} className="flex flex-col gap-4">
                                         
@@ -1508,19 +1551,17 @@ const handleConfirmReschedule = (e) => {
                                         <div className="h-px w-full bg-gray-200 dark:bg-[#27272a] my-2"></div>
 
                                         <div className="flex justify-between items-center">
-    <div className="flex gap-4 items-center">
-        {postModal.post?.id && (
-            <>
-                <button type="button" onClick={handleDeletePost} className="text-[15px] font-medium text-red-600 dark:text-red-500 hover:text-red-700 dark:hover:text-red-400">
-                    Удалить
-                </button>
-                <button type="button" onClick={handleDuplicatePost} className="text-[15px] font-medium text-blue-600 dark:text-blue-500 hover:text-blue-700 dark:hover:text-blue-400 flex items-center gap-1">
-                    <i className="fas fa-copy"></i> Дублировать
-                </button>
-            </>
-        )}
-    </div>
+    <div className="flex justify-between items-center mt-6">
+    {postModal.post?.id ? <button type="button" onClick={handleDeletePost} className="text-[15px] font-medium text-red-600 dark:text-red-500 hover:text-red-700 dark:hover:text-red-400">Удалить</button> : <div></div>}
     <div className="flex gap-3">
+        <button type="button" onClick={() => setPostModal({isOpen: false, post: null})} className="px-5 py-3 font-semibold text-[15px] bg-gray-100 dark:bg-[#222225] hover:bg-gray-200 dark:hover:bg-[#2a2a2e] text-gray-700 dark:text-gray-300 rounded-xl transition-colors">
+            Отмена
+        </button>
+        <button type="submit" disabled={currentMonthRubrics.length === 0 || !isPostRubricValid} className="px-5 py-3 font-semibold text-[15px] bg-blue-600 dark:bg-[#2f6aef] hover:bg-blue-700 dark:hover:bg-blue-500 text-white rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-md">
+            Сохранить
+        </button>
+    </div>
+</div>
                                                 <button type="button" onClick={() => setPostModal({isOpen: false, post: null})} className="px-5 py-3 font-semibold text-[15px] bg-gray-100 dark:bg-[#222225] hover:bg-gray-200 dark:hover:bg-[#2a2a2e] text-gray-700 dark:text-gray-300 rounded-xl transition-colors">
                                                     Отмена
                                                 </button>
@@ -1531,6 +1572,45 @@ const handleConfirmReschedule = (e) => {
                                         </div>
                                     </form>
                                 </div>
+                    {duplicateModal.isOpen && (
+                            <div className="fixed inset-0 bg-black/50 dark:bg-black/70 backdrop-blur-sm flex items-center justify-center z-[70] p-4">
+                                <div className="bg-white dark:bg-[#18181b] border border-gray-200 dark:border-[#27272a] rounded-3xl p-6 sm:p-8 w-full max-w-[400px] shadow-2xl relative" onClick={(e) => e.stopPropagation()}>
+                                    <button onClick={() => setDuplicateModal({ isOpen: false, post: null })} className="absolute top-5 right-5 text-gray-400 dark:text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors">
+                                        <i className="fas fa-times text-xl"></i>
+                                    </button>
+                                    <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mb-2 pr-6">Дублировать пост</h2>
+                                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-6 truncate line-clamp-2">"{duplicateModal.post?.desc}"</p>
+
+                                    <form onSubmit={handleConfirmDuplicate} className="flex flex-col gap-4">
+                                        <label className="text-sm font-bold text-gray-900 dark:text-white block mb-2">Выберите площадки для копирования:</label>
+                                        <div className="flex flex-col gap-2 max-h-48 overflow-y-auto pr-2">
+                                            {socials.map(s => (
+                                                <label key={s.id} className="flex items-center gap-3 p-3 rounded-xl border border-gray-200 dark:border-[#3f3f46] hover:bg-gray-50 dark:hover:bg-[#222225] cursor-pointer transition-colors">
+                                                    <input 
+                                                        type="checkbox" 
+                                                        checked={selectedDupeSocials.includes(s.name)} 
+                                                        onChange={() => handleToggleDupeSocial(s.name)} 
+                                                        className="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500" 
+                                                    />
+                                                    <span className="text-sm font-medium text-gray-900 dark:text-white">{s.name}</span>
+                                                </label>
+                                            ))}
+                                        </div>
+
+                                        <div className="h-px w-full bg-gray-200 dark:bg-[#27272a] my-2"></div>
+
+                                        <div className="flex justify-end gap-3">
+                                            <button type="button" onClick={() => setDuplicateModal({ isOpen: false, post: null })} className="px-5 py-3 font-semibold text-[15px] bg-gray-100 dark:bg-[#222225] hover:bg-gray-200 dark:hover:bg-[#2a2a2e] text-gray-700 dark:text-gray-300 rounded-xl transition-colors">
+                                                Отмена
+                                            </button>
+                                            <button type="submit" disabled={selectedDupeSocials.length === 0} className="px-5 py-3 font-semibold text-[15px] bg-blue-600 dark:bg-[#2f6aef] hover:bg-blue-700 dark:hover:bg-blue-500 text-white rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-md">
+                                                Дублировать
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        )}
                             </div>
                         )}
 
