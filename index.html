@@ -1473,18 +1473,18 @@ const handleConfirmReschedule = (e) => {
                                     {/* Кнопки в правом верхнем углу (Закрыть и Дублировать) */}
                                     <div className="absolute top-5 right-5 flex items-center gap-4">
                                         {postModal.post?.id && (
-                                            <button 
-                                                type="button" 
-                                                onClick={() => {
-                                                    setDuplicateModal({ isOpen: true, post: postModal.post });
-                                                    setSelectedDupeSocials([]);
-                                                    setPostModal({ isOpen: false, post: null });
-                                                }} 
-                                                className="text-gray-400 dark:text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 transition-colors" 
-                                                title="Дублировать"
-                                            >
-                                                <i className="fas fa-copy text-xl"></i>
-                                            </button>
+<button 
+    type="button" 
+    onClick={() => {
+        setDuplicateModal({ isOpen: true, post: postModal.post });
+        setSelectedDupeSocials([]);
+        setPostModal({ isOpen: false, post: null }); 
+    }} 
+    className="text-gray-400 dark:text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 transition-colors" 
+    title="Дублировать"
+>
+    <i className="fas fa-copy text-xl"></i>
+</button>
                                         )}
                                         <button onClick={() => setPostModal({ isOpen: false, post: null })} className="text-gray-400 dark:text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors">
                                             <i className="fas fa-times text-xl"></i>
