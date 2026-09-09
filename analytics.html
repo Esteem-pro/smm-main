@@ -1473,27 +1473,28 @@
             });
         });
 
- // ============================================
-        // ЛОГИКА ШАПОК ПРИ СКРОЛЛЕ (ВОССТАНОВЛЕННАЯ)
+// ============================================
+        // ЛОГИКА ШАПОК ПРИ СКРОЛЛЕ
         // ============================================
         let lastScrollY = 0;
-        const mainNav = document.getElementById('main-nav');
         const subHeader = document.getElementById('dynamic-header');
 
         window.initScrollLayout = () => {
-            if (!mainNav) return;
-            const navH = mainNav.offsetHeight; 
-            const headerH = subHeader ? subHeader.offsetHeight : 0;
+            const navH = 64; // Высота главного меню (h-16)
+            
+            // Если дашборд скрыт (высота 0), берем резервные значения: 120px для мобилок, 80px для ПК
+            let headerH = subHeader ? subHeader.offsetHeight : 0;
+            if (headerH === 0) headerH = window.innerWidth < 640 ? 120 : 80;
 
-            // Добавляем спейсер, чтобы контент (фильтры) вылез из-под шапки
+            // Добавляем невидимый блок-распорку
             document.querySelectorAll('.scroll-area').forEach(area => {
                 let spacer = area.querySelector('.safe-spacer');
                 if (!spacer) {
                     spacer = document.createElement('div');
-                    spacer.className = 'safe-spacer shrink-0 w-full';
+                    spacer.className = 'safe-spacer shrink-0 w-full transition-all';
                     area.insertBefore(spacer, area.firstChild);
                 }
-                spacer.style.height = (navH + headerH + 10) + 'px'; // +10px для визуала
+                spacer.style.height = (navH + headerH + 24) + 'px'; // +24px для красивого отступа
             });
         };
 
@@ -1519,11 +1520,14 @@
         const viewCurrent = document.getElementById('view-current');
         const viewGlobal = document.getElementById('view-global');
 
-        // Вешаем слушатели на контейнеры, а не на window
         if (viewCurrent) viewCurrent.addEventListener('scroll', handleScroll, { passive: true });
         if (viewGlobal) viewGlobal.addEventListener('scroll', handleScroll, { passive: true });
 
-        // Авто-подстройка при ресайзе
+        const dashScreen = document.getElementById('dashboard-screen');
+        if (dashScreen) {
+            new MutationObserver(window.initScrollLayout).observe(dashScreen, { attributes: true, attributeFilter: ['class'] });
+        }
+        
         window.addEventListener('resize', window.initScrollLayout);
         setTimeout(window.initScrollLayout, 100);
         // ============================================
