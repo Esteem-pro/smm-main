@@ -411,13 +411,6 @@
                 const descVal = formData.get('desc').trim(); 
                 let statusVal = formData.get('status');
 
-                if (activeSocial !== 'Instagram') {
-                    const instaPost = posts.find(p => p.social === 'Instagram' && p.desc.trim() === descVal);
-                    if (instaPost) {
-                        statusVal = instaPost.status;
-                    }
-                }
-
                 const newPost = {
                     id: postModal.post?.id || db.ref().push().key,
                     day: parsedDay, month: parsedMonth - 1, year: parsedYear,
