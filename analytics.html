@@ -195,7 +195,7 @@
     </div>
 </nav>
 
-<div id="auth-screen" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+<div id="auth-screen" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 items-center justify-center p-4">
     <div class="bg-white p-8 rounded-[2rem] shadow-2xl max-w-sm w-full relative overflow-hidden">
         <div class="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-blue-500 to-cyan-400"></div>
         <h2 class="text-2xl font-extrabold mt-2 text-slate-900">Вход (SMM Дашборд | Аналитики)</h2>
@@ -204,12 +204,12 @@
         </button>
     </div>
 </div>
-<div id="loading-screen" class="hidden fixed inset-0 bg-[#f1f5f9] z-[2000] flex-col items-center justify-center text-slate-500 gap-4">
+<div id="loading-screen" class="fixed inset-0 bg-[#f1f5f9] z-[2000] flex flex-col items-center justify-center text-slate-500 gap-4">
     <div class="loader"></div>
     <div class="text-sm font-medium">Подключение к рабочему пространству...</div>
 </div>
 <!-- ИСПРАВЛЕНО: добавлено overflow-x-hidden -->
-<div id="dashboard-screen" class="hidden h-full flex flex-col w-full relative overflow-x-hidden">
+<div id="dashboard-screen" class="hidden h-full flex-col w-full relative overflow-x-hidden">
 
     <!-- ИСПРАВЛЕНО: Шапка переведена в fixed, отступ 64px (h-16 от верхнего nav) и GPU-ускоренная трансформация -->
     <header class="glass-header fixed left-0 w-full z-40 px-6 py-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 transition-transform duration-300" id="dynamic-header" style="top: 64px;">
@@ -1286,26 +1286,31 @@
 
 onAuthStateChanged(auth, (user) => {
             if (!user) {
-                document.getElementById('auth-screen').classList.remove('hidden');
-                document.getElementById('dashboard-screen').classList.add('hidden');
+                // Если нет сессии: прячем загрузку, показываем окно входа
                 document.getElementById('loading-screen').classList.add('hidden');
                 document.getElementById('loading-screen').classList.remove('flex');
+                
+                document.getElementById('auth-screen').classList.remove('hidden');
+                document.getElementById('auth-screen').classList.add('flex');
+                
+                document.getElementById('dashboard-screen').classList.add('hidden');
+                document.getElementById('dashboard-screen').classList.remove('flex');
                 return;
             }
 
-            // Прячем экран авторизации и показываем заглушку загрузки
+            // Если сессия есть: жестко прячем окно входа
             document.getElementById('auth-screen').classList.add('hidden');
-            document.getElementById('loading-screen').classList.remove('hidden');
-            document.getElementById('loading-screen').classList.add('flex');
+            document.getElementById('auth-screen').classList.remove('flex');
 
             const dbRef = ref(db, 'kpi_project');
             onValue(dbRef, (snapshot) => {
-                // Как только данные получены — прячем заглушку и показываем дашборд
+                // Как только данные загрузились: прячем заглушку, показываем дашборд
                 document.getElementById('loading-screen').classList.add('hidden');
                 document.getElementById('loading-screen').classList.remove('flex');
+                
                 document.getElementById('dashboard-screen').classList.remove('hidden');
+                document.getElementById('dashboard-screen').classList.add('flex');
 
-                // Инициализируем UI только один раз
                 if (!datePicker) {
                     setInitialDates();
                     setTimeout(window.initScrollLayout, 50);
