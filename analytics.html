@@ -1473,28 +1473,59 @@
             });
         });
 
-        // ============================================
-        // ЛОГИКА ШАПОК ПРИ СКРОЛЛЕ
+ // ============================================
+        // ЛОГИКА ШАПОК ПРИ СКРОЛЛЕ (ВОССТАНОВЛЕННАЯ)
         // ============================================
         let lastScrollY = 0;
+        const mainNav = document.getElementById('main-nav');
         const subHeader = document.getElementById('dynamic-header');
 
-        function handleScroll() {
-            const currentScrollY = window.scrollY;
-            const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
+        window.initScrollLayout = () => {
+            if (!mainNav) return;
+            const navH = mainNav.offsetHeight; 
+            const headerH = subHeader ? subHeader.offsetHeight : 0;
 
+            // Добавляем спейсер, чтобы контент (фильтры) вылез из-под шапки
+            document.querySelectorAll('.scroll-area').forEach(area => {
+                let spacer = area.querySelector('.safe-spacer');
+                if (!spacer) {
+                    spacer = document.createElement('div');
+                    spacer.className = 'safe-spacer shrink-0 w-full';
+                    area.insertBefore(spacer, area.firstChild);
+                }
+                spacer.style.height = (navH + headerH + 10) + 'px'; // +10px для визуала
+            });
+        };
+
+        function handleScroll(e) {
+            const target = e.target;
+            const currentScrollY = target.scrollTop;
+            const maxScroll = target.scrollHeight - target.clientHeight;
+
+            // Блок от прыжков (bounce) на iOS
             if (currentScrollY <= 0 || currentScrollY >= maxScroll - 5) return;
             if (Math.abs(currentScrollY - lastScrollY) <= 5) return;
 
             if (currentScrollY > lastScrollY && currentScrollY > 60) {
+                // Скролл вниз — прячем вторую шапку уводя ее наверх
                 if (subHeader) subHeader.style.transform = 'translateY(-100%)';
             } else {
+                // Скролл вверх — возвращаем шапку
                 if (subHeader) subHeader.style.transform = 'translateY(0)';
             }
             lastScrollY = currentScrollY;
         }
 
-        window.addEventListener('scroll', handleScroll, { passive: true });
+        const viewCurrent = document.getElementById('view-current');
+        const viewGlobal = document.getElementById('view-global');
+
+        // Вешаем слушатели на контейнеры, а не на window
+        if (viewCurrent) viewCurrent.addEventListener('scroll', handleScroll, { passive: true });
+        if (viewGlobal) viewGlobal.addEventListener('scroll', handleScroll, { passive: true });
+
+        // Авто-подстройка при ресайзе
+        window.addEventListener('resize', window.initScrollLayout);
+        setTimeout(window.initScrollLayout, 100);
         // ============================================
 
     </script>
