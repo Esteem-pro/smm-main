@@ -153,6 +153,18 @@
             border-radius: 999px;
             min-width: 2px;
         }
+        .loader { 
+            border: 3px solid #e2e8f0; 
+            border-top: 3px solid #3b82f6; 
+            border-radius: 50%; 
+            width: 24px; 
+            height: 24px; 
+            animation: spin 1s linear infinite; 
+        }
+        @keyframes spin { 
+            0% { transform: rotate(0deg); } 
+            100% { transform: rotate(360deg); } 
+        }
     </style>
 </head>
 
@@ -192,7 +204,10 @@
         </button>
     </div>
 </div>
-
+<div id="loading-screen" class="hidden fixed inset-0 bg-[#f1f5f9] z-[2000] flex-col items-center justify-center text-slate-500 gap-4">
+    <div class="loader"></div>
+    <div class="text-sm font-medium">Подключение к рабочему пространству...</div>
+</div>
 <!-- ИСПРАВЛЕНО: добавлено overflow-x-hidden -->
 <div id="dashboard-screen" class="hidden h-full flex flex-col w-full relative overflow-x-hidden">
 
@@ -1269,19 +1284,33 @@
         });
         document.getElementById('global-grouping').addEventListener('change', () => { renderGlobalData(); });
 
-        onAuthStateChanged(auth, (user) => {
-            if (!user) return;
+onAuthStateChanged(auth, (user) => {
+            if (!user) {
+                document.getElementById('auth-screen').classList.remove('hidden');
+                document.getElementById('dashboard-screen').classList.add('hidden');
+                document.getElementById('loading-screen').classList.add('hidden');
+                document.getElementById('loading-screen').classList.remove('flex');
+                return;
+            }
 
+            // Прячем экран авторизации и показываем заглушку загрузки
             document.getElementById('auth-screen').classList.add('hidden');
-            document.getElementById('dashboard-screen').classList.remove('hidden');
-
-            // Инициализируем расчет отступов
-            setTimeout(window.initScrollLayout, 50);
-
-            if (!datePicker) setInitialDates();
+            document.getElementById('loading-screen').classList.remove('hidden');
+            document.getElementById('loading-screen').classList.add('flex');
 
             const dbRef = ref(db, 'kpi_project');
             onValue(dbRef, (snapshot) => {
+                // Как только данные получены — прячем заглушку и показываем дашборд
+                document.getElementById('loading-screen').classList.add('hidden');
+                document.getElementById('loading-screen').classList.remove('flex');
+                document.getElementById('dashboard-screen').classList.remove('hidden');
+
+                // Инициализируем UI только один раз
+                if (!datePicker) {
+                    setInitialDates();
+                    setTimeout(window.initScrollLayout, 50);
+                }
+
                 const data = snapshot.val();
                 if (!data) return;
 
@@ -1296,6 +1325,8 @@
 
                 if (currentTab === 'global') { renderGlobalData(); } else { processCurrentMonthData(); }
             }, (error) => {
+                document.getElementById('loading-screen').classList.add('hidden');
+                document.getElementById('loading-screen').classList.remove('flex');
                 document.getElementById('sync-status').innerText = 'Firebase: нет доступа';
                 document.getElementById('sync-status').className = 'text-xs font-bold text-rose-600 mt-1';
                 showError('Доступ запрещен. Проверьте Firebase Rules и whitelist Google-аккаунта.');
