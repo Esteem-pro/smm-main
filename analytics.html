@@ -15,7 +15,7 @@
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/ru.js"></script>
 
-    <!-- Конфиг Tailwind (как в первом SPA) -->
+    <!-- Конфиг Tailwind -->
     <script>
         tailwind.config = {
             darkMode: 'class',
@@ -76,6 +76,8 @@
             border: 1px solid #e5e7eb;
             display: flex;
             flex-direction: column;
+            /* ФИКС ДЛЯ АДАПТИВА: разрешаем карточке сжиматься меньше контента */
+            min-width: 0; 
         }
 
         html.dark .bento-card {
@@ -211,31 +213,32 @@
     <div class="max-w-[1800px] mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
         
         <!-- Логотип -->
-        <div class="flex items-center gap-3">
-            <img src="esteem-logo.jpg" alt="Logo" class="w-9 h-9 rounded-xl object-cover shadow-md shrink-0">
-            <span class="font-extrabold text-lg text-gray-900 dark:text-white tracking-tight hidden sm:block">SMM Hub</span>
+        <div class="flex items-center gap-2 sm:gap-3 shrink-0">
+            <img src="esteem-logo.jpg" alt="Logo" class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl object-cover shadow-md shrink-0">
+            <span class="font-extrabold text-base sm:text-lg text-gray-900 dark:text-white tracking-tight hidden sm:block">SMM Hub</span>
         </div>
 
         <!-- Переключатель (Pills) -->
-        <div class="flex items-center p-1 bg-gray-100/80 dark:bg-[#18181b]/80 rounded-[14px] border border-gray-200/50 dark:border-[#27272a]/50">
-            <a href="index.html" class="flex items-center gap-2 px-4 py-1.5 rounded-xl text-sm font-bold transition-all text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white hover:bg-gray-200/50 dark:hover:bg-white/5">
+        <div class="flex items-center p-1 bg-gray-100/80 dark:bg-[#18181b]/80 rounded-[14px] border border-gray-200/50 dark:border-[#27272a]/50 shrink-0 overflow-x-auto max-w-full">
+            <a href="index.html" class="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 rounded-xl text-xs sm:text-sm font-bold transition-all text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white hover:bg-gray-200/50 dark:hover:bg-white/5 whitespace-nowrap">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
                 Контент-центр
             </a>
-            <a href="analytics.html" class="flex items-center gap-2 px-4 py-1.5 rounded-xl text-sm font-bold transition-all text-blue-600 dark:text-blue-400 bg-white dark:bg-[#27272a] shadow-sm cursor-default">
+            <a href="analytics.html" class="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 rounded-xl text-xs sm:text-sm font-bold transition-all text-blue-600 dark:text-blue-400 bg-white dark:bg-[#27272a] shadow-sm cursor-default whitespace-nowrap">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
                 Аналитика
             </a>
         </div>
 
-        <div class="hidden sm:flex items-center justify-end gap-5 lg:gap-6 w-10 sm:w-auto">
-            <button onclick="window.toggleTheme()" id="theme-toggle-btn" class="w-10 h-10 flex justify-center items-center rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors bg-gray-50 dark:bg-[#111] border border-gray-200 dark:border-gray-800 shadow-sm dark:shadow-none">
-                <i class="fas fa-moon text-blue-500 text-[15px]"></i>
+        <!-- Кнопки профиля (Адаптировано для мобилок) -->
+        <div class="flex items-center justify-end gap-2 sm:gap-5 lg:gap-6 shrink-0">
+            <button onclick="window.toggleTheme()" id="theme-toggle-btn" class="w-8 h-8 sm:w-10 sm:h-10 flex justify-center items-center rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors bg-gray-50 dark:bg-[#111] border border-gray-200 dark:border-gray-800 shadow-sm dark:shadow-none shrink-0">
+                <i class="fas fa-moon text-blue-500 text-[13px] sm:text-[15px]"></i>
             </button>
             
-            <div class="flex items-center gap-3 bg-gray-100 dark:bg-[#222] p-1.5 pr-4 rounded-full border border-gray-200 dark:border-gray-700 group cursor-pointer shrink-0 transition-all hover:border-red-500/30 dark:hover:border-red-500/30" id="logout-btn" title="Выйти">
-                <img id="user-avatar" src="https://via.placeholder.com/32" alt="Avatar" class="w-8 h-8 rounded-full shadow-sm" />
-                <i class="fas fa-sign-out-alt text-gray-400 dark:text-gray-500 group-hover:text-red-500 dark:group-hover:text-red-400 transition-colors text-base"></i>
+            <div class="flex items-center gap-2 sm:gap-3 bg-gray-100 dark:bg-[#222] p-1 sm:p-1.5 pr-1 sm:pr-4 rounded-full border border-gray-200 dark:border-gray-700 group cursor-pointer shrink-0 transition-all hover:border-red-500/30 dark:hover:border-red-500/30" id="logout-btn" title="Выйти">
+                <img id="user-avatar" src="https://via.placeholder.com/32" alt="Avatar" class="w-6 h-6 sm:w-8 sm:h-8 rounded-full shadow-sm shrink-0" />
+                <i class="fas fa-sign-out-alt hidden sm:block text-gray-400 dark:text-gray-500 group-hover:text-red-500 dark:group-hover:text-red-400 transition-colors text-base"></i>
             </div>
         </div>
     </div>
@@ -284,8 +287,8 @@
 
         <div class="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto">
             <div class="bg-gray-100/80 dark:bg-[#18181b]/80 p-1 rounded-xl flex text-sm font-semibold w-full sm:w-auto overflow-x-auto border border-gray-200/50 dark:border-[#27272a]/50">
-                <button id="tab-current" onclick="switchTab('current')" class="px-4 py-2 bg-white dark:bg-[#27272a] text-gray-900 dark:text-white shadow-sm rounded-lg flex-1 sm:flex-none whitespace-nowrap transition-all">Текущий месяц</button>
-                <button id="tab-global" onclick="switchTab('global')" class="px-4 py-2 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white rounded-lg flex-1 sm:flex-none whitespace-nowrap transition-all">Общая динамика</button>
+                <button id="tab-current" onclick="switchTab('current')" class="px-4 py-2 bg-white dark:bg-[#27272a] text-gray-900 dark:text-white shadow-sm rounded-lg flex-1 sm:flex-none whitespace-nowrap transition-all min-w-[120px]">Текущий месяц</button>
+                <button id="tab-global" onclick="switchTab('global')" class="px-4 py-2 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white rounded-lg flex-1 sm:flex-none whitespace-nowrap transition-all min-w-[140px]">Общая динамика</button>
             </div>
         </div>
     </header>
@@ -293,15 +296,15 @@
     <main class="scroll-area w-full" id="view-current">
         <div class="max-w-[1800px] mx-auto p-4 sm:p-6 overflow-x-hidden">
 
-            <div class="flex flex-col sm:flex-row gap-4 mb-6 bg-white dark:bg-carbon p-4 rounded-2xl border border-gray-200 dark:border-[#27272a] shadow-sm dark:shadow-none">
-                <div class="flex gap-4 flex-1">
-                    <div class="w-full sm:w-auto">
+            <div class="flex flex-col sm:flex-row gap-4 mb-6 bg-white dark:bg-carbon p-4 rounded-2xl border border-gray-200 dark:border-[#27272a] shadow-sm dark:shadow-none min-w-0">
+                <div class="flex gap-4 flex-1 min-w-0">
+                    <div class="w-full sm:w-auto min-w-0">
                         <span class="filter-label">Период анализа</span>
                         <input type="text" id="current-date-range" class="filter-input w-full sm:w-64" placeholder="Выберите диапазон дат...">
                     </div>
                 </div>
 
-                <div>
+                <div class="min-w-0">
                     <span class="filter-label">SMM канал</span>
                     <select id="current-channel" class="filter-input w-full sm:w-auto min-w-[180px]">
                         <option value="all">Все каналы</option>
@@ -309,21 +312,22 @@
                 </div>
             </div>
 
-            <div id="error-container" class="hidden mb-6 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-500/30 text-red-700 dark:text-red-400 p-4 rounded-xl text-sm font-medium"></div>
+            <div id="error-container" class="hidden mb-6 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-500/30 text-red-700 dark:text-red-400 p-4 rounded-xl text-sm font-medium min-w-0"></div>
 
             <div class="flex flex-col gap-6">
 
+                <!-- ФИКС min-w-0 ДОБАВЛЕН КО ВСЕМ FLEX-КОНТЕЙНЕРАМ ВНУТРИ КАРТОЧЕК -->
                 <div class="bento-card flex flex-col lg:flex-row gap-6 p-6">
-                    <div class="flex-1 min-w-[220px] flex flex-col">
+                    <div class="flex-1 min-w-0 flex flex-col">
                         <span class="metric-title">Суммарный охват / показы / просмотры</span>
                         <div class="metric-value mt-1" id="val-reach">0</div>
                         <div class="mt-auto w-full" id="diff-reach"></div>
                     </div>
-                    <div class="flex-1 relative min-h-[190px] lg:border-l lg:border-r border-gray-100 dark:border-[#27272a] px-4">
+                    <div class="flex-1 relative min-h-[190px] min-w-0 lg:border-l lg:border-r border-gray-100 dark:border-[#27272a] lg:px-4">
                         <span class="text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-3 block">Доли каналов</span>
                         <div id="pie-reach" class="channel-share-list"></div>
                     </div>
-                    <div class="flex-[2] relative min-h-[190px]">
+                    <div class="flex-[2] relative min-h-[190px] min-w-0">
                         <span class="text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-2 block">Динамика по дням</span>
                         <div class="w-full h-[165px] relative">
                             <canvas id="line-reach"></canvas>
@@ -332,16 +336,16 @@
                 </div>
 
                 <div class="bento-card flex flex-col lg:flex-row gap-6 p-6">
-                    <div class="flex-1 min-w-[220px] flex flex-col">
+                    <div class="flex-1 min-w-0 flex flex-col">
                         <span class="metric-title flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-blue-500 block"></span>Всего лидов</span>
                         <div class="metric-value text-blue-600 dark:text-blue-500 mt-1" id="val-leads">0</div>
                         <div class="mt-auto w-full" id="diff-leads"></div>
                     </div>
-                    <div class="flex-1 relative min-h-[190px] lg:border-l lg:border-r border-gray-100 dark:border-[#27272a] px-4">
+                    <div class="flex-1 relative min-h-[190px] min-w-0 lg:border-l lg:border-r border-gray-100 dark:border-[#27272a] lg:px-4">
                         <span class="text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-3 block">Доли каналов</span>
                         <div id="pie-leads" class="channel-share-list"></div>
                     </div>
-                    <div class="flex-[2] relative min-h-[190px]">
+                    <div class="flex-[2] relative min-h-[190px] min-w-0">
                         <span class="text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-2 block">Динамика по дням</span>
                         <div class="w-full h-[165px] relative">
                             <canvas id="line-leads"></canvas>
@@ -350,16 +354,16 @@
                 </div>
 
                 <div class="bento-card flex flex-col lg:flex-row gap-6 p-6">
-                    <div class="flex-1 min-w-[220px] flex flex-col">
+                    <div class="flex-1 min-w-0 flex flex-col">
                         <span class="metric-title flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-emerald-500 block"></span>Приток подписчиков</span>
                         <div class="metric-value mt-1" id="val-subs">0</div>
                         <div class="mt-auto w-full" id="diff-subs"></div>
                     </div>
-                    <div class="flex-1 relative min-h-[190px] lg:border-l lg:border-r border-gray-100 dark:border-[#27272a] px-4">
+                    <div class="flex-1 relative min-h-[190px] min-w-0 lg:border-l lg:border-r border-gray-100 dark:border-[#27272a] lg:px-4">
                         <span class="text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-3 block">Доли каналов</span>
                         <div id="pie-subs" class="channel-share-list"></div>
                     </div>
-                    <div class="flex-[2] relative min-h-[190px]">
+                    <div class="flex-[2] relative min-h-[190px] min-w-0">
                         <span class="text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-2 block">Динамика по дням</span>
                         <div class="w-full h-[165px] relative">
                             <canvas id="line-subs"></canvas>
@@ -368,16 +372,16 @@
                 </div>
 
                 <div class="bento-card flex flex-col lg:flex-row gap-6 p-6">
-                    <div class="flex-1 min-w-[220px] flex flex-col">
+                    <div class="flex-1 min-w-0 flex flex-col">
                         <span class="metric-title">Средний ERR</span>
                         <div class="metric-value text-gray-700 dark:text-gray-300 mt-1" id="val-err">0%</div>
                         <div class="mt-auto w-full" id="diff-err"></div>
                     </div>
-                    <div class="flex-1 relative min-h-[190px] lg:border-l lg:border-r border-gray-100 dark:border-[#27272a] px-4">
+                    <div class="flex-1 relative min-h-[190px] min-w-0 lg:border-l lg:border-r border-gray-100 dark:border-[#27272a] lg:px-4">
                         <span class="text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-3 block">ERR по каналам</span>
                         <div id="pie-err" class="channel-share-list"></div>
                     </div>
-                    <div class="flex-[2] relative min-h-[190px]">
+                    <div class="flex-[2] relative min-h-[190px] min-w-0">
                         <span class="text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-2 block">Динамика по дням</span>
                         <div class="w-full h-[165px] relative">
                             <canvas id="line-err"></canvas>
@@ -386,12 +390,12 @@
                 </div>
 
                 <div id="card-profile-visits" class="bento-card hidden flex-col lg:flex-row gap-6 p-6">
-                    <div class="flex-1 min-w-[220px] flex flex-col">
+                    <div class="flex-1 min-w-0 flex flex-col">
                         <span class="metric-title flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-purple-500 block"></span>Посещения профиля</span>
                         <div class="metric-value text-purple-600 dark:text-purple-400 mt-1" id="val-visits">0</div>
                         <div class="mt-auto w-full" id="diff-visits"></div>
                     </div>
-                    <div class="flex-[3] relative min-h-[190px]">
+                    <div class="flex-[3] relative min-h-[190px] min-w-0">
                         <span class="text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-2 block">Динамика по дням</span>
                         <div class="w-full h-[165px] relative">
                             <canvas id="line-visits"></canvas>
@@ -400,12 +404,12 @@
                 </div>
 
                 <div id="card-dzen-metrics" class="bento-card hidden flex-col lg:flex-row gap-6 p-6">
-                    <div class="flex-1 min-w-[220px] flex flex-col">
+                    <div class="flex-1 min-w-0 flex flex-col">
                         <span class="metric-title flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-orange-500 block"></span>Средний % дочитываний</span>
                         <div class="metric-value text-orange-600 dark:text-orange-500 mt-1" id="val-dzen-reads">0%</div>
                         <div class="mt-auto w-full" id="diff-dzen-reads"></div>
                     </div>
-                    <div class="flex-[3] relative min-h-[190px]">
+                    <div class="flex-[3] relative min-h-[190px] min-w-0">
                         <span class="text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-2 block">Динамика по дням</span>
                         <div class="w-full h-[165px] relative">
                             <canvas id="line-dzen-reads"></canvas>
@@ -420,14 +424,14 @@
     <main class="scroll-area hidden w-full" id="view-global">
         <div class="max-w-[1800px] mx-auto p-4 sm:p-6 overflow-x-hidden">
             
-            <div class="flex flex-col sm:flex-row gap-4 mb-6 bg-white dark:bg-carbon p-4 rounded-2xl border border-gray-200 dark:border-[#27272a] shadow-sm dark:shadow-none">
-                <div>
+            <div class="flex flex-col sm:flex-row gap-4 mb-6 bg-white dark:bg-carbon p-4 rounded-2xl border border-gray-200 dark:border-[#27272a] shadow-sm dark:shadow-none min-w-0">
+                <div class="w-full sm:w-auto min-w-0">
                     <span class="filter-label">SMM канал</span>
                     <select id="global-channel" class="filter-input w-full sm:w-auto min-w-[180px]">
                         <option value="all">Все каналы</option>
                     </select>
                 </div>
-                <div>
+                <div class="w-full sm:w-auto min-w-0">
                     <span class="filter-label">Группировка</span>
                     <select id="global-grouping" class="filter-input w-full sm:w-auto min-w-[180px]">
                         <option value="month">По месяцам</option>
@@ -437,64 +441,65 @@
                 </div>
             </div>
 
+            <!-- ФИКС min-w-0 ДОБАВЛЕН КО ВСЕМ КАРТОЧКАМ ВНУТРИ GRID-СЕТОК -->
             <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-                <div class="bg-white dark:bg-carbon p-5 rounded-2xl border border-gray-200 dark:border-[#27272a] shadow-sm dark:shadow-none flex flex-col justify-center">
-                    <span class="metric-title text-[10px]">Суммарный охват</span>
-                    <span class="metric-value text-2xl mt-1" id="global-tot-reach">0</span>
+                <div class="bg-white dark:bg-carbon p-5 rounded-2xl border border-gray-200 dark:border-[#27272a] shadow-sm dark:shadow-none flex flex-col justify-center min-w-0">
+                    <span class="metric-title text-[10px] truncate">Суммарный охват</span>
+                    <span class="metric-value text-xl sm:text-2xl mt-1 truncate" id="global-tot-reach">0</span>
                 </div>
-                <div class="bg-white dark:bg-carbon p-5 rounded-2xl border border-gray-200 dark:border-[#27272a] shadow-sm dark:shadow-none flex flex-col justify-center">
-                    <span class="metric-title text-[10px] flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-blue-500 block"></span>Всего лидов</span>
-                    <span class="metric-value text-2xl text-blue-600 dark:text-blue-500 mt-1" id="global-tot-leads">0</span>
+                <div class="bg-white dark:bg-carbon p-5 rounded-2xl border border-gray-200 dark:border-[#27272a] shadow-sm dark:shadow-none flex flex-col justify-center min-w-0">
+                    <span class="metric-title text-[10px] flex items-center gap-2 truncate"><span class="w-2 h-2 rounded-full bg-blue-500 block shrink-0"></span>Всего лидов</span>
+                    <span class="metric-value text-xl sm:text-2xl text-blue-600 dark:text-blue-500 mt-1 truncate" id="global-tot-leads">0</span>
                 </div>
-                <div class="bg-white dark:bg-carbon p-5 rounded-2xl border border-gray-200 dark:border-[#27272a] shadow-sm dark:shadow-none flex flex-col justify-center">
-                    <span class="metric-title text-[10px] flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-emerald-500 block"></span>Подписчики</span>
-                    <span class="metric-value text-2xl mt-1" id="global-tot-subs">0</span>
+                <div class="bg-white dark:bg-carbon p-5 rounded-2xl border border-gray-200 dark:border-[#27272a] shadow-sm dark:shadow-none flex flex-col justify-center min-w-0">
+                    <span class="metric-title text-[10px] flex items-center gap-2 truncate"><span class="w-2 h-2 rounded-full bg-emerald-500 block shrink-0"></span>Подписчики</span>
+                    <span class="metric-value text-xl sm:text-2xl mt-1 truncate" id="global-tot-subs">0</span>
                 </div>
-                <div class="bg-white dark:bg-carbon p-5 rounded-2xl border border-gray-200 dark:border-[#27272a] shadow-sm dark:shadow-none flex flex-col justify-center">
-                    <span class="metric-title text-[10px]">Средний ERR</span>
-                    <span class="metric-value text-2xl text-gray-700 dark:text-gray-300 mt-1" id="global-tot-err">0%</span>
+                <div class="bg-white dark:bg-carbon p-5 rounded-2xl border border-gray-200 dark:border-[#27272a] shadow-sm dark:shadow-none flex flex-col justify-center min-w-0">
+                    <span class="metric-title text-[10px] truncate">Средний ERR</span>
+                    <span class="metric-value text-xl sm:text-2xl text-gray-700 dark:text-gray-300 mt-1 truncate" id="global-tot-err">0%</span>
                 </div>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-                <div class="bento-card h-[320px]">
+                <div class="bento-card h-[320px] min-w-0">
                     <span class="metric-title mb-2 text-center">Распределение: Охват</span>
-                    <canvas id="global-pie-reach"></canvas>
+                    <div class="relative w-full h-full min-w-0"><canvas id="global-pie-reach"></canvas></div>
                 </div>
-                <div class="bento-card h-[320px]">
+                <div class="bento-card h-[320px] min-w-0">
                     <span class="metric-title mb-2 text-center">Распределение: Лиды</span>
-                    <canvas id="global-pie-leads"></canvas>
+                    <div class="relative w-full h-full min-w-0"><canvas id="global-pie-leads"></canvas></div>
                 </div>
-                <div class="bento-card h-[320px]">
+                <div class="bento-card h-[320px] min-w-0">
                     <span class="metric-title mb-2 text-center">Распределение: Подписчики</span>
-                    <canvas id="global-pie-subs"></canvas>
+                    <div class="relative w-full h-full min-w-0"><canvas id="global-pie-subs"></canvas></div>
                 </div>
             </div>
 
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div class="bento-card h-[360px]">
+                <div class="bento-card h-[360px] min-w-0">
                     <span class="metric-title mb-4">Охват / показы / просмотры</span>
-                    <canvas id="global-reach"></canvas>
+                    <div class="relative w-full h-full min-w-0"><canvas id="global-reach"></canvas></div>
                 </div>
-                <div class="bento-card h-[360px]">
+                <div class="bento-card h-[360px] min-w-0">
                     <span class="metric-title mb-4">Лиды</span>
-                    <canvas id="global-leads"></canvas>
+                    <div class="relative w-full h-full min-w-0"><canvas id="global-leads"></canvas></div>
                 </div>
-                <div class="bento-card h-[360px]">
+                <div class="bento-card h-[360px] min-w-0">
                     <span class="metric-title mb-4">Приток подписчиков</span>
-                    <canvas id="global-subs"></canvas>
+                    <div class="relative w-full h-full min-w-0"><canvas id="global-subs"></canvas></div>
                 </div>
-                <div class="bento-card h-[360px]">
+                <div class="bento-card h-[360px] min-w-0">
                     <span class="metric-title mb-4">ERR</span>
-                    <canvas id="global-err"></canvas>
+                    <div class="relative w-full h-full min-w-0"><canvas id="global-err"></canvas></div>
                 </div>
-                <div id="global-card-profile-visits" class="bento-card h-[360px] hidden">
+                <div id="global-card-profile-visits" class="bento-card h-[360px] hidden min-w-0">
                     <span class="metric-title mb-4 text-purple-600 dark:text-purple-400">Посещения профиля</span>
-                    <canvas id="global-visits"></canvas>
+                    <div class="relative w-full h-full min-w-0"><canvas id="global-visits"></canvas></div>
                 </div>
-                <div id="global-card-dzen-metrics" class="bento-card h-[360px] hidden">
+                <div id="global-card-dzen-metrics" class="bento-card h-[360px] hidden min-w-0">
                     <span class="metric-title mb-4 text-orange-600 dark:text-orange-500">Средний % дочитываний</span>
-                    <canvas id="global-dzen-reads"></canvas>
+                    <div class="relative w-full h-full min-w-0"><canvas id="global-dzen-reads"></canvas></div>
                 </div>
             </div>
         </div>
@@ -550,7 +555,6 @@
             }
             updateThemeIcon();
             
-            // Если графики уже отрисованы - перерисовываем их с новыми цветами сетки/текста
             if (Object.keys(smmCharts).length > 0) {
                 if (currentTab === 'global') renderGlobalData();
                 else processCurrentMonthData();
@@ -566,8 +570,8 @@
             const btn = document.getElementById('theme-toggle-btn');
             if(btn) {
                 btn.innerHTML = isDark 
-                    ? '<i class="fas fa-sun text-yellow-500 text-[15px]"></i>' 
-                    : '<i class="fas fa-moon text-blue-500 text-[15px]"></i>';
+                    ? '<i class="fas fa-sun text-yellow-500 text-[13px] sm:text-[15px]"></i>' 
+                    : '<i class="fas fa-moon text-blue-500 text-[13px] sm:text-[15px]"></i>';
             }
         }
         
@@ -592,8 +596,8 @@
             const btnCurrent = document.getElementById('tab-current');
             const btnGlobal = document.getElementById('tab-global');
 
-            const activeClass = "px-4 py-2 bg-white dark:bg-[#27272a] text-gray-900 dark:text-white shadow-sm rounded-lg flex-1 sm:flex-none whitespace-nowrap transition-all";
-            const inactiveClass = "px-4 py-2 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white rounded-lg flex-1 sm:flex-none whitespace-nowrap transition-all";
+            const activeClass = "px-4 py-2 bg-white dark:bg-[#27272a] text-gray-900 dark:text-white shadow-sm rounded-lg flex-1 sm:flex-none whitespace-nowrap transition-all min-w-[120px]";
+            const inactiveClass = "px-4 py-2 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white rounded-lg flex-1 sm:flex-none whitespace-nowrap transition-all min-w-[140px]";
 
             const subHeader = document.getElementById('dynamic-header');
             if (subHeader) subHeader.style.transform = 'translateY(0)';
@@ -1432,7 +1436,6 @@
                 return;
             }
 
-            // Устанавливаем аватарку
             const avatarEl = document.getElementById('user-avatar');
             if (avatarEl && user.photoURL) avatarEl.src = user.photoURL;
 
@@ -1473,20 +1476,18 @@
             });
         });
 
-// ============================================
+        // ============================================
         // ЛОГИКА ШАПОК ПРИ СКРОЛЛЕ
         // ============================================
         let lastScrollY = 0;
         const subHeader = document.getElementById('dynamic-header');
 
         window.initScrollLayout = () => {
-            const navH = 64; // Высота главного меню (h-16)
+            const navH = 64; 
             
-            // Если дашборд скрыт (высота 0), берем резервные значения: 120px для мобилок, 80px для ПК
             let headerH = subHeader ? subHeader.offsetHeight : 0;
             if (headerH === 0) headerH = window.innerWidth < 640 ? 120 : 80;
 
-            // Добавляем невидимый блок-распорку
             document.querySelectorAll('.scroll-area').forEach(area => {
                 let spacer = area.querySelector('.safe-spacer');
                 if (!spacer) {
@@ -1494,7 +1495,7 @@
                     spacer.className = 'safe-spacer shrink-0 w-full transition-all';
                     area.insertBefore(spacer, area.firstChild);
                 }
-                spacer.style.height = (navH + headerH + 24) + 'px'; // +24px для красивого отступа
+                spacer.style.height = (navH + headerH + 24) + 'px';
             });
         };
 
@@ -1503,15 +1504,12 @@
             const currentScrollY = target.scrollTop;
             const maxScroll = target.scrollHeight - target.clientHeight;
 
-            // Блок от прыжков (bounce) на iOS
             if (currentScrollY <= 0 || currentScrollY >= maxScroll - 5) return;
             if (Math.abs(currentScrollY - lastScrollY) <= 5) return;
 
             if (currentScrollY > lastScrollY && currentScrollY > 60) {
-                // Скролл вниз — прячем вторую шапку уводя ее наверх
                 if (subHeader) subHeader.style.transform = 'translateY(-100%)';
             } else {
-                // Скролл вверх — возвращаем шапку
                 if (subHeader) subHeader.style.transform = 'translateY(0)';
             }
             lastScrollY = currentScrollY;
