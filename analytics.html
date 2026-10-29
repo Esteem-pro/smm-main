@@ -621,7 +621,61 @@
             }
         };
 
-        function slugify(text) { return btoa(encodeURIComponent(text)).replace(/[^a-zA-Z0-9]/g, '').substring(0, 10); }
+// --- СИНХРОНИЗАЦИЯ СЛАГОВ И КАНАЛОВ С НОВЫМ ДАШБОРДОМ ---
+        function slugifyLegacy(text) {
+            return btoa(encodeURIComponent(text)).replace(/[^a-zA-Z0-9]/g, '').substring(0, 10);
+        }
+
+        function slugifyUnique(text) {
+            let hash = 0;
+            const str = String(text || '');
+            for (let i = 0; i < str.length; i++) {
+                hash = ((hash << 5) - hash) + str.charCodeAt(i);
+                hash |= 0;
+            }
+            return slugifyLegacy(str).substring(0, 6) + Math.abs(hash).toString(36).substring(0, 4);
+        }
+
+        function slugify(text) {
+            return slugifyLegacy(text);
+        }
+
+        function getSMMMetricSlug(mI, cI, metricName) {
+            const legacy = slugifyLegacy(metricName);
+            const ch = monthsData[mI]?.smmChannels?.[cI];
+            if (!ch || !Array.isArray(ch.metrics)) return legacy;
+
+            const sameLegacyMetrics = ch.metrics.filter(m => slugifyLegacy(m) === legacy);
+            if (sameLegacyMetrics.length <= 1 || sameLegacyMetrics[0] === metricName) {
+                return legacy;
+            }
+            return slugifyUnique(metricName);
+        }
+
+        // Собирает все существующие SMM-каналы из всех НЕ удаленных месяцев
+        function getAllAvailableSMMChannels(preferredMonthIndex = -1) {
+            const channelMap = new Map();
+
+            // Сначала проходим по всем живым месяцам, чтобы не потерять ни один канал
+            monthsData.forEach((m) => {
+                if (!m || m._deleted || !Array.isArray(m.smmChannels)) return;
+                m.smmChannels.forEach((ch, idx) => {
+                    if (!ch || ch._deleted || !ch.name) return;
+                    channelMap.set(`c${idx}`, ch.name.trim());
+                });
+            });
+
+            // Если указан конкретный месяц, его актуальные названия имеют приоритет
+            if (preferredMonthIndex >= 0 && monthsData[preferredMonthIndex] && !monthsData[preferredMonthIndex]._deleted) {
+                (monthsData[preferredMonthIndex].smmChannels || []).forEach((ch, idx) => {
+                    if (!ch || ch._deleted || !ch.name) return;
+                    channelMap.set(`c${idx}`, ch.name.trim());
+                });
+            }
+
+            return Array.from(channelMap.entries()).map(([key, name]) => ({ key, name }));
+        }
+
         function formatNum(num) { return NF.format(Math.round(Number(num) || 0)); }
         function formatPerc(num) { return `${(Number(num) || 0).toFixed(2)}%`; }
         function dateOnly(d) { return new Date(d.getFullYear(), d.getMonth(), d.getDate()); }
@@ -654,11 +708,12 @@
         }
 
         function findMonthIndexByDate(date) {
-            return monthsData.findIndex(m => m && m.name === monthNameFromDate(date));
+            return monthsData.findIndex(m => m && !m._deleted && m.name === monthNameFromDate(date));
         }
 
         function getMonthYear(month) {
-            const [mName, y] = String(month?.name || '').split(' ');
+            if (!month || month._deleted || !month.name) return { year: NaN, monthIndex: -1 };
+            const [mName, y] = String(month.name).trim().split(/\s+/);
             return { year: Number(y), monthIndex: ruMonths.indexOf(mName) };
         }
 
@@ -710,7 +765,9 @@
                 if (channelFilter !== 'all' && channelFilter !== `c${cIdx}`) continue;
 
                 const month = monthsData[mIdx];
-                if (!month) continue;
+                if (!month || month._deleted) continue;
+                const ch = month.smmChannels?.[cIdx];
+                if (!ch || ch._deleted) continue;
 
                 const { year, monthIndex } = getMonthYear(month);
                 const dayObj = month.weeks?.[wIdx]?.days?.[dIdx];
@@ -779,16 +836,15 @@
 
         function updateChannelDropdown(monthIndex, currentSelection) {
             const select = document.getElementById('current-channel');
-            const channels = monthsData[monthIndex]?.smmChannels || [];
             const previous = currentSelection || select.value || 'all';
 
             select.innerHTML = '<option value="all">Все каналы</option>';
 
-            channels.forEach((ch, idx) => {
-                if (!ch) return;
+            const availableChannels = getAllAvailableSMMChannels(monthIndex);
+            availableChannels.forEach(({ key, name }) => {
                 const opt = document.createElement('option');
-                opt.value = `c${idx}`;
-                opt.innerText = ch.name || `Канал ${idx + 1}`;
+                opt.value = key;
+                opt.innerText = name;
                 select.appendChild(opt);
             });
 
@@ -818,12 +874,13 @@
             };
 
             const month = monthsData[monthIndex];
-            if (!month) return result;
+            if (!month || month._deleted) return result;
 
             const { year, monthIndex: monthIndex0 } = getMonthYear(month);
             const channels = month.smmChannels || [];
 
             channels.forEach((channel, cI) => {
+                if (!channel || channel._deleted) return;
                 const cKey = `c${cI}`;
 
                 result.reach.byC[cKey] ??= 0; result.leads.byC[cKey] ??= 0; result.subs.byC[cKey] ??= 0;
@@ -842,11 +899,13 @@
                         const tIdx = daysBetweenInclusive(safeStart, realDate) - 1;
 
                         metrics.forEach(metricName => {
-                            const metricSlug = slugify(metricName);
+                            const metricSlug = getSMMMetricSlug(monthIndex, cI, metricName);
                             const key = `smm_m${monthIndex}_c${cI}_w${wI}_d${dI}_${metricSlug}`;
+                            const legacyKey = `smm_m${monthIndex}_c${cI}_w${wI}_d${dI}_${slugifyLegacy(metricName)}`;
 
-                            if (!(key in inputState)) return;
-                            const val = Number(inputState[key]) || 0;
+                            const rawVal = key in inputState ? inputState[key] : inputState[legacyKey];
+                            if (rawVal === undefined || rawVal === null || rawVal === '') return;
+                            const val = Number(rawVal) || 0;
 
                             if (isReachMetric(metricName)) {
                                 result.reach.tot += val; result.reach.byC[cKey] = (result.reach.byC[cKey] || 0) + val; result.reach.t[tIdx] += val;
@@ -863,10 +922,12 @@
                         });
 
                         if (errMetric) {
-                            const eKey = `smm_m${monthIndex}_c${cI}_w${wI}_d${dI}_${slugify(errMetric)}`;
-                            if (eKey in inputState) {
+                            const errSlug = getSMMMetricSlug(monthIndex, cI, errMetric);
+                            const eKey = `smm_m${monthIndex}_c${cI}_w${wI}_d${dI}_${errSlug}`;
+                            if (eKey in inputState && inputState[eKey] !== '') {
                                 const errVal = Number(inputState[eKey]) || 0;
-                                const reachVal = reachMetric ? (Number(inputState[`smm_m${monthIndex}_c${cI}_w${wI}_d${dI}_${slugify(reachMetric)}`]) || 0) : 0;
+                                const reachSlug = reachMetric ? getSMMMetricSlug(monthIndex, cI, reachMetric) : '';
+                                const reachVal = reachMetric ? (Number(inputState[`smm_m${monthIndex}_c${cI}_w${wI}_d${dI}_${reachSlug}`]) || 0) : 0;
                                 const byC = result.err.byCErr[cKey];
 
                                 if (reachVal > 0) {
@@ -918,6 +979,7 @@
             };
 
             monthsData.forEach((month, monthIndex) => {
+                if (!month || month._deleted) return;
                 const { year, monthIndex: monthIndex0 } = getMonthYear(month);
                 if (!Number.isFinite(year) || monthIndex0 < 0) return;
 
@@ -945,7 +1007,7 @@
                     merged.dzenReads.t[globalIdx] = part.dzenReads.t[localIdx] || merged.dzenReads.t[globalIdx] || 0;
                 });
 
-               ['reach', 'leads', 'subs', 'visits'].forEach(metric => {
+                ['reach', 'leads', 'subs', 'visits'].forEach(metric => {
                     merged[metric].tot += part[metric].tot || 0;
                     Object.keys(part[metric].byC || {}).forEach(cKey => {
                         merged[metric].byC[cKey] = (merged[metric].byC[cKey] || 0) + (part[metric].byC[cKey] || 0);
@@ -1019,9 +1081,20 @@
             `;
         }
 
+        // Безопасное получение имени канала (даже если последний месяц был удален)
         function channelName(monthIndex, cKey) {
             const cNum = Number(String(cKey).replace('c', ''));
-            return monthsData[monthIndex]?.smmChannels?.[cNum]?.name || `Канал ${cNum + 1}`;
+            const directName = monthsData[monthIndex]?.smmChannels?.[cNum]?.name;
+            if (directName && !monthsData[monthIndex]?.smmChannels?.[cNum]?._deleted) {
+                return directName;
+            }
+            for (let i = monthsData.length - 1; i >= 0; i--) {
+                const m = monthsData[i];
+                if (!m || m._deleted) continue;
+                const ch = m.smmChannels?.[cNum];
+                if (ch && !ch._deleted && ch.name) return ch.name;
+            }
+            return `Канал ${cNum + 1}`;
         }
 
         function renderPie(id, dataObj, monthIndex, isAverage = false) {
@@ -1200,16 +1273,17 @@
                 updateMonthLabel(selectedStart);
 
                 const monthIndex = findMonthIndexByDate(selectedStart);
+                const channelFilterEl = document.getElementById('current-channel');
+                const prevSelection = channelFilterEl.value;
+
+                // Обновляем список каналов даже если стартовый месяц еще не создан
+                updateChannelDropdown(monthIndex, prevSelection);
+                const channelFilter = channelFilterEl.value;
+
                 if (monthIndex === -1) {
                     showError(`В базе нет месяца: ${monthNameFromDate(selectedStart)}`);
                     return;
                 }
-
-                const channelFilterEl = document.getElementById('current-channel');
-                const prevSelection = channelFilterEl.value;
-
-                updateChannelDropdown(monthIndex, prevSelection);
-                const channelFilter = channelFilterEl.value;
 
                 const current = extractSMMRangeMultiMonth(selectedStart, actualEnd, channelFilter);
                 const prevRange = getPreviousAnalogRange(selectedStart, actualEnd);
@@ -1274,12 +1348,12 @@
             const currentChannel = channelEl.value || 'all';
             channelEl.innerHTML = '<option value="all">Все каналы</option>';
             
-            const latestChannels = monthsData[monthsData.length - 1]?.smmChannels || [];
-            latestChannels.forEach((ch, idx) => {
-                if (!ch) return;
+            // Собираем каналы по всем живым месяцам, игнорируя _deleted
+            const availableChannels = getAllAvailableSMMChannels();
+            availableChannels.forEach(({ key, name }) => {
                 const opt = document.createElement('option');
-                opt.value = `c${idx}`;
-                opt.innerText = ch.name || `Канал ${idx + 1}`;
+                opt.value = key;
+                opt.innerText = name;
                 channelEl.appendChild(opt);
             });
             channelEl.value = [...channelEl.options].some(o => o.value === currentChannel) ? currentChannel : 'all';
@@ -1294,6 +1368,7 @@
             const pieReach = {}; const pieLeads = {}; const pieSubs = {};
 
             monthsData.forEach((m, mI) => {
+                if (!m || m._deleted) return;
                 const { year, monthIndex } = getMonthYear(m);
                 if (!Number.isFinite(year) || monthIndex < 0) return;
 
@@ -1330,6 +1405,7 @@
                         fcstReach = data.reach.tot * multiplier;
                         fcstLeads = data.leads.tot * multiplier;
                         fcstSubs = data.subs.tot * multiplier;
+                        fcstVisits = data.visits.tot * multiplier;
                     }
                 }
 
